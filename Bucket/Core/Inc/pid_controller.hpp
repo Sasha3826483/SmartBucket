@@ -8,18 +8,28 @@ private:
     float kp;           // Пропорциональный коэффициент
     float ki;           // Интегральный коэффициент
     float kd;           // Дифференциальный коэффициент
-    float integral;     // Накопленная интегральная ошибка
-    float prevError;    // Предыдущая ошибка
+
+    float integral{0.0f};     // Накопленная интегральная ошибка
+    float prevError{0.0f};    // Предыдущая ошибка для вычисления производной
+
     float minOutput;    // Минимальный выход
     float maxOutput;    // Максимальный выход
+
     float maxIntegral;  // Ограничение для интеграла (anti-windup)
-    float targetSpeed;  // Уставка скорости для ПИД регулятора
-    float measureSpeed; // Измеренная скорость для ПИД регулятора
-    float outputPid;       // Выход ПИД регулятора
+
+    // Отладочные переменные для хранения текущей уставки, обратной связи и выхода ПИД регулятора
+    float targetSpeed{0.0f};  // Уставка скорости для ПИД регулятора
+    float measureSpeed{0.0f}; // Измеренная скорость для ПИД регулятора
+    float outputPid{0.0f};    // Выход ПИД регулятора
 
 public:
     // Конструктор
-    PIDController(float kp = 0.5f, float ki = 0.05f, float kd = 0.02f);
+    PIDController(float kp = 1.0f,
+                  float ki = 0.0f,
+                  float kd = 0.0f,
+                  float minOutput = -1.0f,
+                  float maxOutput = 1.0f,
+                  float maxIntegral = 100.0f);
     
     // Установить коэффициенты
     void setCoefficients(float kp, float ki, float kd);
@@ -36,8 +46,14 @@ public:
     // Сбросить регулятор
     void reset();
 
-    int getTargetSpeed() const;
-    int getOutputPid() const;
+    // Получить текущую уставку скорости
+    float getTargetSpeed() const;
+
+    // Получить текущее выдаваемое значение ПИД регулятора
+    float getOutputPid() const;
+
+    // Получить текущее измеренное значение скорости
+    float getMeasureSpeed() const;
 };
 
 #endif // PID_CONTROLLER_HPP

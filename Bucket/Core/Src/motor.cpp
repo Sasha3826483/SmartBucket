@@ -9,9 +9,9 @@
 
 Motor::Motor(TIM_HandleTypeDef *htim, uint32_t channel, GPIO_TypeDef *dirPort1,
 		uint16_t dirPin1, GPIO_TypeDef *dirPort2, uint16_t dirPin2) :
-		m_htim(htim), m_channel(channel), m_dirPort1(dirPort1), m_dirPin1(
-				dirPin1), m_dirPort2(dirPort2), m_dirPin2(dirPin2), m_speedPercent(
-				0) {
+		m_htim{htim}, m_channel{channel}, m_dirPort1{dirPort1}, m_dirPin1{
+				dirPin1}, m_dirPort2{dirPort2}, m_dirPin2{dirPin2}, m_speedPercent{
+				0} {
 }
 
 void Motor::init() {

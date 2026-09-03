@@ -1,8 +1,10 @@
 #include "pid_controller.hpp"
 
-PIDController::PIDController(float kp, float ki, float kd) :
-		kp(kp), ki(ki), kd(kd), integral(0.0f), prevError(0.0f), minOutput(
-				-100.0f), maxOutput(100.0f), maxIntegral(50.0f) {
+PIDController::PIDController(float kp, float ki, float kd, 
+                             float minOutput, float maxOutput, 
+                             float maxIntegral) :
+    kp{kp}, ki{ki}, kd{kd},
+    minOutput{minOutput}, maxOutput{maxOutput}, maxIntegral{maxIntegral} {
 }
 
 void PIDController::setCoefficients(float kp, float ki, float kd) {
@@ -36,7 +38,7 @@ float PIDController::update(float setpoint, float actual, float dt)
     float error = setpoint - actual;
 
     // Остановка двигателя при близости к нулю
-    if (setpoint == 0.0f && (actual >= -1.0f && actual <= 1.0f))
+    if (setpoint == 0.0f && (actual >= -10.0f && actual <= 10.0f))
     {
         integral = 0.0f;
         prevError = 0.0f;
@@ -66,19 +68,23 @@ float PIDController::update(float setpoint, float actual, float dt)
     // Пересчитываем выход с финальным интегралом и ограничиваем
     output = p + ki * integral + d;
     output = clamp(output, minOutput, maxOutput);
-
-    prevError = error;
     outputPid = output;
+    
+    prevError = error;
 
     return output;
 }
 
-int PIDController::getTargetSpeed() const {
-	return static_cast<int>(targetSpeed);
+float PIDController::getTargetSpeed() const {
+	return targetSpeed;
 }
 
-int PIDController::getOutputPid() const {
-	return static_cast<int>(outputPid);
+float PIDController::getMeasureSpeed() const {
+	return measureSpeed;
+}
+
+float PIDController::getOutputPid() const {
+	return outputPid;
 }
 
 void PIDController::reset() {

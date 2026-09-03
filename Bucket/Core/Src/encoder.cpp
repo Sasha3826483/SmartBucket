@@ -1,7 +1,7 @@
 #include "encoder.hpp"
 
 Encoder::Encoder(TIM_HandleTypeDef *htim, uint32_t counterPeriod) :
-		m_htim(htim), m_counterPeriod(counterPeriod), m_previousCount(0) {
+		m_htim{htim}, m_counterPeriod{counterPeriod}, m_previousCount{0} {
 }
 
 void Encoder::init() {
