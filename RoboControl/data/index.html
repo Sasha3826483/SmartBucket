@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <!-- Кодировка документа: благодаря UTF-8 корректно отображается русский текст. -->
+    <meta charset="UTF-8" />
+    <!-- Настройки отображения на телефонах и планшетах. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <!-- Текст, отображаемый во вкладке браузера. -->
+    <title>Robot control</title>
+
+    <!-- CSS описывает внешний вид элементов HTML. -->
+    <style>
+      :root {
+        /* Общие цвета страницы, доступные через var(--имя). */
+        color-scheme: dark;
+        --bg: #101417;
+        --panel: #1b2227;
+        --line: #35434a;
+        --accent: #65d6bd;
+        --muted: #93a4aa;
+      }
+
+      * {
+        /* box-sizing упрощает расчёт фактических размеров элементов. */
+        box-sizing: border-box;
+        /* Панель управления не должна выделять текст во время жестов. */
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+      }
+
+      *::selection {
+        background: transparent;
+      }
+
+      body {
+        /* body содержит всё видимое содержимое страницы. */
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle at 50% 0%, #26343a, var(--bg) 58%);
+        color: #eef5f3;
+        font-family: Georgia, "Times New Roman", serif;
+        user-select: none;
+      }
+
+      main {
+        /* main ограничивает ширину основной панели управления. */
+        width: min(680px, 100%);
+      }
+
+      header {
+        /* flex размещает заголовок и индикатор соединения в одной строке. */
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 14px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 7vw, 46px);
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+
+      .status {
+        color: var(--muted);
+        font:
+          13px ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+
+      .status.online {
+        color: var(--accent);
+      }
+
+      .console {
+        /* Grid раскладывает два джойстика по колонкам. */
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 28px;
+        align-items: center;
+      }
+
+      .joystick-wrap {
+        /* Квадратная оболочка сохраняет круглый джойстик пропорциональным. */
+        aspect-ratio: 1;
+        width: min(100%, 380px);
+        justify-self: center;
+        display: grid;
+        place-items: center;
+      }
+
+      .joystick-label {
+        margin-bottom: 12px;
+        color: var(--muted);
+        text-align: center;
+        font:
+          12px ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        text-transform: uppercase;
+      }
+
+      .joystick {
+        /* Этот div является областью, в которой пользователь двигает стиком. */
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background:
+          repeating-radial-gradient(
+            circle,
+            transparent 0 29%,
+            rgba(101, 214, 189, 0.08) 29.2% 29.7%
+          ),
+          #151c20;
+        touch-action: none;
+      }
+
+      .joystick::before,
+      .joystick::after {
+        content: "";
+        position: absolute;
+        background: var(--line);
+        opacity: 0.75;
+      }
+
+      .joystick::before {
+        width: 1px;
+        height: 84%;
+        top: 8%;
+        left: 50%;
+      }
+
+      .joystick::after {
+        width: 84%;
+        height: 1px;
+        left: 8%;
+        top: 50%;
+      }
+
+      .knob {
+        /* knob — внутренняя ручка, которую JavaScript перемещает через transform. */
+        position: absolute;
+        z-index: 1;
+        width: 31%;
+        aspect-ratio: 1;
+        left: 34.5%;
+        top: 34.5%;
+        border-radius: 50%;
+        border: 2px solid var(--accent);
+        background: #29433f;
+        box-shadow: 0 0 30px rgba(101, 214, 189, 0.22);
+        pointer-events: none;
+        transition: transform 0.08s ease-out;
+      }
+
+      .axes {
+        margin-top: 28px;
+        color: var(--muted);
+        font:
+          13px ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
+        /* На узком экране джойстики становятся вертикальными. */
+        body {
+          padding: 18px;
+        }
+
+        .console {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .joystick-wrap {
+          width: min(88vw, 400px);
+        }
+      }
+
+      @media screen and (orientation: landscape) and (max-height: 600px) {
+        /* Отдельная настройка для телефона в горизонтальной ориентации. */
+        body {
+          min-height: 100svh;
+          padding: max(8px, env(safe-area-inset-top))
+            max(12px, env(safe-area-inset-right))
+            max(8px, env(safe-area-inset-bottom))
+            max(12px, env(safe-area-inset-left));
+          place-items: start center;
+          overflow: hidden;
+        }
+
+        main {
+          width: min(820px, 100%);
+        }
+
+        header {
+          padding-bottom: 8px;
+          margin-bottom: 10px;
+        }
+
+        h1 {
+          font-size: 26px;
+        }
+
+        .status {
+          font-size: 11px;
+        }
+
+        .console {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .console > div {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .joystick-label {
+          margin-bottom: 5px;
+          font-size: 10px;
+        }
+
+        .joystick-wrap {
+          width: min(46vw, 58svh, 280px);
+        }
+
+        .axes {
+          margin-top: 10px;
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- main — основной видимый контент страницы. -->
+    <main>
+      <!-- Верхняя строка: название робота и состояние WebSocket. -->
+      <header>
+        <h1>Robot</h1>
+        <span class="status" id="status">offline</span>
+      </header>
+
+      <!-- Раздел с двумя независимыми экранными джойстиками. -->
+      <section class="console">
+        <div>
+          <div class="joystick-label">Move</div>
+          <div class="joystick-wrap">
+            <!-- id нужен JavaScript, чтобы найти область джойстика в DOM. -->
+            <div
+              class="joystick"
+              id="moveJoystick"
+              aria-label="Movement joystick"
+            >
+              <!-- Ручка джойстика перемещается относительно центра круга. -->
+              <div class="knob" id="moveKnob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="joystick-label">Rotate</div>
+          <div class="joystick-wrap">
+            <div
+              class="joystick"
+              id="rotateJoystick"
+              aria-label="Rotation joystick"
+            >
+              <div class="knob" id="rotateKnob"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Текущие значения команд, обновляемые JavaScript. -->
+      <div class="axes">
+        vx <span id="vx">0</span> &nbsp; vy <span id="vy">0</span> &nbsp; vz
+        <span id="vz">0</span>
+      </div>
+    </main>
+
+    <!-- JavaScript обрабатывает управление и связь с ESP8266. -->
+    <script>
+      // Частота отправки команд на ESP8266: одна команда каждые 80 мс.
+      const HEARTBEAT_MS = 20;
+      // Отклонение внутри этой зоны считается положением покоя.
+      const JOYSTICK_DEAD_ZONE = 0.18;
+      // Степень кривой чувствительности: около центра движение мягче.
+      const JOYSTICK_RESPONSE = 1.7;
+      // Чем меньше значение, тем медленнее текущая скорость догоняет целевую.
+      const SMOOTHING_FACTOR = 0.2;//0.16;
+
+      // Ссылка на текстовый индикатор состояния WebSocket.
+      const status = document.getElementById("status");
+
+      // values — фактически отправляемые значения, targetValues — желаемые.
+      const values = { vx: 0, vy: 0, vz: 0 };
+      const targetValues = { vx: 0, vy: 0, vz: 0 };
+      // Индекс подключённого устройства в массиве navigator.getGamepads().
+      let gamepadIndex = null;
+      let socket;
+      let reconnectTimer;
+
+      function clamp(value, min, max) {
+        // Не позволяет команде выйти за допустимый диапазон.
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function updateDisplay() {
+        // textContent меняет текст внутри span-элементов HTML.
+        document.getElementById("vx").textContent = Math.round(values.vx);
+        document.getElementById("vy").textContent = Math.round(values.vy);
+        document.getElementById("vz").textContent = Math.round(values.vz);
+      }
+
+      function setMovement(vx, vy) {
+        // Стик и клавиатура меняют цель, а не скорость напрямую.
+        targetValues.vx = clamp(vx, -100, 100);
+        targetValues.vy = clamp(vy, -100, 100);
+      }
+
+      function shapeJoystickAxis(value) {
+        // Сначала убираем дрожание стика около центра.
+        const magnitude = Math.abs(value);
+        if (magnitude <= JOYSTICK_DEAD_ZONE) return 0;
+
+        // Переносим оставшийся диапазон обратно в интервал 0..1.
+        const adjusted =
+          (magnitude - JOYSTICK_DEAD_ZONE) / (1 - JOYSTICK_DEAD_ZONE);
+        // Возвращаем исходный знак после изменения чувствительности.
+        return Math.sign(value) * Math.pow(adjusted, JOYSTICK_RESPONSE);
+      }
+
+      function readGamepad() {
+        // Gamepad API доступен не во всех браузерах.
+        if (navigator.getGamepads) {
+          const gamepads = navigator.getGamepads();
+          // Если событие подключения не пришло, ищем первое доступное устройство.
+          let gamepad =
+            gamepadIndex === null
+              ? Array.from(gamepads).find(Boolean)
+              : gamepads[gamepadIndex];
+
+          if (gamepad) {
+            gamepadIndex = gamepad.index;
+            // Стандартная раскладка: левый стик X/Y и правый стик X.
+            const leftX = shapeJoystickAxis(gamepad.axes[0] || 0);
+            const leftY = shapeJoystickAxis(gamepad.axes[1] || 0);
+            const rightX = shapeJoystickAxis(gamepad.axes[2] || 0);
+
+            setMovement(leftX * 100, -leftY * 100);
+            targetValues.vz = rightX * 100;
+          }
+        }
+        // Планируем следующий опрос перед следующим кадром браузера.
+        requestAnimationFrame(readGamepad);
+      }
+
+      function smoothValues() {
+        <!-- // Плавно приближаем текущие значения к целевым на каждом кадре. -->
+        <!-- for (const axis of ["vx", "vy", "vz"]) { -->
+        <!--   values[axis] += -->
+        <!--     (targetValues[axis] - values[axis]) * SMOOTHING_FACTOR; -->
+        <!--   if (Math.abs(targetValues[axis] - values[axis]) < 0.1) { -->
+        <!--     values[axis] = targetValues[axis]; -->
+        <!--   } -->
+        <!-- } -->
+        // Уберем плавное приближение для мгновенной реакции на джойстик и клавиатуру
+        values.vx = targetValues.vx;
+        values.vy = targetValues.vy;
+        values.vz = targetValues.vz;
+        updateDisplay();
+        requestAnimationFrame(smoothValues);
+      }
+
+      function createJoystick(elementId, knobId, onMove, onReset) {
+        // Одна универсальная функция используется для Move и Rotate.
+        const element = document.getElementById(elementId);
+        const knob = document.getElementById(knobId);
+
+        function reset() {
+          // После отпускания палец/мышь возвращают ручку и команды в центр.
+          knob.style.transform = "translate(0, 0)";
+          onReset();
+        }
+
+        function move(event) {
+          // Получаем фактический размер и положение джойстика на экране.
+          const rect = element.getBoundingClientRect();
+          const radius = rect.width / 2;
+          const maxOffset = radius * 0.69;
+          let dx = event.clientX - (rect.left + radius);
+          let dy = event.clientY - (rect.top + radius);
+          const length = Math.hypot(dx, dy);
+
+          // Ограничиваем ручку допустимым радиусом даже за пределами круга.
+          if (length > maxOffset) {
+            dx = (dx * maxOffset) / length;
+            dy = (dy * maxOffset) / length;
+          }
+
+          // Визуально перемещаем ручку джойстика
+          knob.style.transform = `translate(${dx}px, ${dy}px)`;
+          onMove(dx / maxOffset, dy / maxOffset);
+        }
+
+        // Callback срабатывает при нажатии мышью, пальцем или стилусом.
+        element.addEventListener("pointerdown", (event) => {
+          element.setPointerCapture(event.pointerId);
+          move(event);
+        });
+
+        // Callback срабатывает при движении захваченного указателя.
+        element.addEventListener("pointermove", (event) => {
+          if (element.hasPointerCapture(event.pointerId)) move(event);
+        });
+
+        // Callback срабатывает после отпускания указателя и сбрасывает джойстик.
+        element.addEventListener("pointerup", (event) => {
+          element.releasePointerCapture(event.pointerId);
+          reset();
+        });
+
+        // Callback срабатывает при неожиданном прерывании касания и сбрасывает джойстик.
+        element.addEventListener("pointercancel", reset);
+      }
+
+      createJoystick(
+        "moveJoystick",
+        "moveKnob",
+        (x, y) => {
+          // Move использует две координаты: X для vx и Y для vy.
+          setMovement(shapeJoystickAxis(x) * 100, -shapeJoystickAxis(y) * 100);
+        },
+        () => {
+          setMovement(0, 0);
+        },
+      );
+
+      createJoystick(
+        "rotateJoystick",
+        "rotateKnob",
+        (x) => {
+          // Rotate использует горизонтальное отклонение для vz.
+          targetValues.vz = shapeJoystickAxis(x) * 100;
+        },
+        () => {
+          targetValues.vz = 0;
+        },
+      );
+
+      // Таблица переводит клавиши в команды движения.
+      const keyMap = {
+        w: [0, 100, 0],
+        ArrowUp: [0, 100, 0],
+        s: [0, -100, 0],
+        ArrowDown: [0, -100, 0],
+        a: [-100, 0, 0],
+        ArrowLeft: [-100, 0, 0],
+        d: [100, 0, 0],
+        ArrowRight: [100, 0, 0],
+        q: [0, 0, -100],
+        e: [0, 0, 100],
+      };
+
+      const pressed = new Set();
+
+      // Подключение геймпада сохраняет его индекс для последующего опроса.
+      window.addEventListener("gamepadconnected", (event) => {
+        gamepadIndex = event.gamepad.index;
+      });
+
+      window.addEventListener("gamepaddisconnected", (event) => {
+        if (event.gamepad.index !== gamepadIndex) return;
+
+        // При потере контроллера робот получает целевую команду остановки.
+        gamepadIndex = null;
+        setMovement(0, 0);
+        targetValues.vz = 0;
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const motion = keyMap[event.key];
+        if (!motion) return;
+
+        // Отменяем стандартное действие браузера, например прокрутку стрелками.
+        event.preventDefault();
+        pressed.add(event.key);
+        setMovement(motion[0], motion[1]);
+
+        if (motion[2]) {
+          targetValues.vz = motion[2];
+        }
+      });
+
+      window.addEventListener("keyup", (event) => {
+        if (!pressed.delete(event.key)) return;
+
+        if (!pressed.size) {
+          setMovement(0, 0);
+          targetValues.vz = 0;
+        }
+      });
+
+      function connect() {
+        // WebSocket использует тот же адрес, что и загруженная HTML-страница.
+        socket = new WebSocket(
+          `${location.protocol === "https:" ? "wss" : "ws"}://${location.hostname}:81/`,
+        );
+
+        socket.addEventListener("open", () => {
+          // Соединение с ESP8266 установлено.
+          status.textContent = "online";
+          status.classList.add("online");
+        });
+
+        socket.addEventListener("close", () => {
+          // При разрыве показываем состояние и пробуем подключиться снова.
+          status.textContent = "offline";
+          status.classList.remove("online");
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connect, 1000);
+        });
+
+        socket.addEventListener("error", () => {
+          socket.close();
+        });
+      }
+
+      setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          // JSON превращает объект команд в текстовое сообщение WebSocket.
+          socket.send(
+            JSON.stringify({
+              vx: Math.round(values.vx),
+              vy: Math.round(values.vy),
+              vz: Math.round(values.vz),
+            }),
+          );
+        }
+      }, HEARTBEAT_MS);
+
+      updateDisplay();
+      // Запускаем два независимых цикла: сглаживание и опрос геймпада.
+      requestAnimationFrame(smoothValues);
+      requestAnimationFrame(readGamepad);
+      connect();
+    </script>
+  </body>
+</html>

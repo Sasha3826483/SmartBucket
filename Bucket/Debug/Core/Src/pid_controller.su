@@ -1,0 +1,9 @@
+../Core/Src/pid_controller.cpp:3:1:PIDController::PIDController(float, float, float)	24	static
+../Core/Src/pid_controller.cpp:8:6:void PIDController::setCoefficients(float, float, float)	24	static
+../Core/Src/pid_controller.cpp:14:6:void PIDController::setOutputLimits(float, float)	24	static
+../Core/Src/pid_controller.cpp:19:6:void PIDController::setIntegralLimit(float)	16	static
+../Core/Src/pid_controller.cpp:23:7:float clamp(float, float, float)	24	static
+../Core/Src/pid_controller.cpp:31:7:float PIDController::update(float, float, float)	48	static
+../Core/Src/pid_controller.cpp:76:5:int PIDController::getTargetSpeed() const	16	static
+../Core/Src/pid_controller.cpp:80:5:int PIDController::getOutputPid() const	16	static
+../Core/Src/pid_controller.cpp:84:6:void PIDController::reset()	16	static

@@ -1,0 +1,5 @@
+../Core/Src/motor.cpp:10:1:Motor::Motor(TIM_HandleTypeDef*, uint32_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t)	24	static
+../Core/Src/motor.cpp:17:6:void Motor::init()	16	static
+../Core/Src/motor.cpp:22:6:void Motor::setSpeed(uint8_t)	24	static
+../Core/Src/motor.cpp:32:6:void Motor::setDirection(MotorDirection)	16	static
+../Core/Src/motor.cpp:49:6:void Motor::stop()	16	static

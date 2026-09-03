@@ -1,0 +1,9 @@
+../Core/Src/cpp_main.cpp:99:9:int16_t clampSpeed(int16_t)	3
+../Core/Src/cpp_main.cpp:107:6:void applyMotorSpeed(Motor&, int16_t)	3
+../Core/Src/cpp_main.cpp:120:6:void applyMotion(const MotionCommand&)	3
+../Core/Src/cpp_main.cpp:140:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	4
+../Core/Src/cpp_main.cpp:172:6:void startUartRx()	1
+../Core/Src/cpp_main.cpp:180:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	10
+../Core/Src/cpp_main.cpp:223:6:void cpp_main()	6
+../Core/Src/cpp_main.cpp:272:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/cpp_main.cpp:272:1:cpp)	1
