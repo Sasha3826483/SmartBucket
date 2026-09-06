@@ -1,0 +1,5 @@
+../Core/Src/encoder.cpp:3:1:Encoder::Encoder(TIM_HandleTypeDef*, uint32_t)	24	static
+../Core/Src/encoder.cpp:7:6:void Encoder::init()	16	static
+../Core/Src/encoder.cpp:12:9:int32_t Encoder::count() const	16	static
+../Core/Src/encoder.cpp:16:9:int32_t Encoder::readDelta()	104	static
+../Core/Src/encoder.cpp:31:6:void Encoder::reset()	16	static

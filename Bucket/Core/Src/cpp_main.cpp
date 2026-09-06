@@ -15,7 +15,7 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim10;
 
 // Encoders Timers (32 bit)
-//extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim5;
 
 // Encoders Timers (16 bit)
@@ -57,7 +57,7 @@ volatile bool controlUpdate{false}; // Флаг обновления управ�
 static float controlDt{0.01f};
 
 // ПИД-параметры для настройки ПИД регулятора через SWD
-float Kp{0.0f}, Ki{0.0f}, Kd{0.0f};
+float Kp{0.5f}, Ki{15.0f}, Kd{0.00000f};
 
 // Ограничение интеграла для ПИД регулятора, чтобы избежать windup
 float integralLimit{0.0f};
@@ -106,18 +106,23 @@ Motor motors[] {
 
 // Массив объектов каждого энкодера
 Encoder encoders[] {
-	Encoder{&htim5, 0xFFFFFFFFU}, // LF
-	Encoder{&htim4, 0xFFFFU},     // RF
-	Encoder{&htim3, 0xFFFFU},     // LB
-	Encoder{&htim5, 0xFFFFFFFFU}  // RB
+	Encoder{&htim3, 0xFFFFU}, // LF
+	Encoder{&htim5, 0xFFFFFFFFU},     // RF
+	Encoder{&htim2, 0xFFFFFFFFU},     // LB
+	Encoder{&htim4, 0xFFFFU}  // RB
 };
 
 // Массив ПИД контроллеров для каждого мотора
 PIDController pidControllers[4] {
-	PIDController{0.0f, 0.0f, 0.0f, -100.0f, 100.0f, 100.0f},
-	PIDController{0.0f, 0.0f, 0.0f, -100.0f, 100.0f, 100.0f},
-	PIDController{0.0f, 0.0f, 0.0f, -100.0f, 100.0f, 100.0f},
-	PIDController{0.0f, 0.0f, 0.0f, -100.0f, 100.0f, 100.0f}
+	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f}
+	
+//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}, // LF
+//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}, // RF
+//	PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f}, // LB
+//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}  // RB
 };
 
 // Функция для ограничения скорости в диапазоне [-100, 100] %
@@ -149,11 +154,12 @@ void applyMotion() {
 
 	// Переводим дельты энкодеров в обороты в минуту.
 	// Здесь 44 - количество импульсов на оборот, 56 - редуктор, 60 - перевод в минуты.
-	measureSpeed[MOTOR_LF] = float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LF] = float(-encoders[MOTOR_LF].readDelta()) / controlDt / 44 / 56 * 60;
 	measureSpeed[MOTOR_RF] = float(encoders[MOTOR_RF].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_LB] = float(-encoders[MOTOR_LF].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LB] = float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
 	measureSpeed[MOTOR_RB] = float(encoders[MOTOR_RB].readDelta()) / controlDt / 44 / 56 * 60;
 
+	// Вычисляем уставочные скорости для каждого мотора на основе команды движения (vx, vy, vz)
 	int16_t targetSpeed[4]{};
 	targetSpeed[MOTOR_LF] = motion.vy + motion.vx - motion.vz;
 	targetSpeed[MOTOR_RF] = motion.vy - motion.vx + motion.vz;
@@ -167,13 +173,16 @@ void applyMotion() {
 	}
 
 	float pidOuts[4]{};
-	for (uint8_t i = 0; i < 4; ++i) {
-		// Вычисляем выход ПИД регулятора и применяем его к мотору. Пид-регулятор работает в об/мин, 
-		// поэтому нормируем его к диапазону [-100, 100], т.к. моторы управляются в процентах от 
-		// максимальной скорости
-		pidOuts[i] = (pidControllers[i].update(targetSpeedForPID[i], measureSpeed[i], controlDt) / MAX_SPEED) * 100;
+	
+	// Вычисляем выход ПИД регулятора и применяем его к мотору. Пид-регулятор работает в об/мин, 
+	// поэтому нормируем его к диапазону [-100, 100], т.к. моторы управляются в процентах от 
+	// максимальной скорости
+	pidOuts[MOTOR_LF] = (pidControllers[MOTOR_LF].update(targetSpeedForPID[MOTOR_LF], measureSpeed[MOTOR_LF], controlDt) / MAX_SPEED) * 100;
+	pidOuts[MOTOR_RF] = (pidControllers[MOTOR_RF].update(targetSpeedForPID[MOTOR_RF], measureSpeed[MOTOR_RF], controlDt) / MAX_SPEED) * 100;
+	pidOuts[MOTOR_LB] = (pidControllers[MOTOR_LB].update(targetSpeedForPID[MOTOR_LB], measureSpeed[MOTOR_LB], controlDt) / MAX_SPEED) * 100;
+	pidOuts[MOTOR_RB] = (pidControllers[MOTOR_RB].update(targetSpeedForPID[MOTOR_RB], measureSpeed[MOTOR_RB], controlDt) / MAX_SPEED) * 100;
+	for (uint8_t i = 0; i < 4; ++i)
 		applyMotorSpeed(motors[i], pidOuts[i]);
-	}
 }
 
 // ---------------------------------------------------------
@@ -217,7 +226,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			if (!frameReady) {
 				pendingMotion.vx = (int8_t) framePayload[0];
 				pendingMotion.vy = (int8_t) framePayload[1];
-				pendingMotion.vz = (int8_t) framePayload[2];
+				pendingMotion.vz = (int8_t) -framePayload[2];
 				frameReady = true;
 			}
 		}
@@ -272,7 +281,7 @@ void cpp_main(void) {
 
 		if (updateRequired) {
 			uint32_t now{HAL_GetTick()};
-			controlDt = float((now - lastControlTick) > 0U ? now - lastControlTick : 1U) / 1000.0f;
+			controlDt = float((now - lastControlTick) > 0U ? now - lastControlTick : 10U) / 1000.0f;
 			lastControlTick = now;
 			
 			// Применяем команду движения к моторам с учетом ПИД регулятора
@@ -302,14 +311,14 @@ void cpp_main(void) {
 		// Настройка ПИД регулятора
 		
 		// Для настройки ПИД регулятора через SWD
-		pidControllers[MOTOR_LF].setCoefficients(Kp, Ki, Kd);
-		pidControllers[MOTOR_LF].setIntegralLimit(integralLimit);
+		// pidControllers[MOTOR_LF].setCoefficients(Kp, Ki, Kd);
+		// pidControllers[MOTOR_LF].setIntegralLimit(integralLimit);
 		
 		// Для отладки: сохраняем текущую уставку скорости и выход ПИД регулятора для вывода
 		// на график через SWD-интерфейс
-		setpointSpeed = pidControllers[MOTOR_LF].getTargetSpeed();
-		outputPid = pidControllers[MOTOR_LF].getOutputPid();
-		actualSpeed = pidControllers[MOTOR_LF].getMeasureSpeed();	
+		setpointSpeed = pidControllers[MOTOR_LB].getTargetSpeed();
+		outputPid = pidControllers[MOTOR_LB].getOutputPid();
+		actualSpeed = pidControllers[MOTOR_LB].getMeasureSpeed();
 		
 		// -----------------------------------------
 	}

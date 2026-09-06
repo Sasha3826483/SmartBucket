@@ -28,6 +28,7 @@ WebSocketsServer webSocket(81);
 // ======= Heartbeat / Safety =======
 // Если команда не поступает дольше SAFETY_TIMEOUT, отправляется команда остановки.
 const unsigned long SAFETY_TIMEOUT = 1000; // ms
+const int16_t MAX_COMMAND = 70;
 unsigned long lastCommandTime = 0;  // Время получения последней команды, мс
 int16_t currentVx = 0;
 int16_t currentVy = 0;
@@ -51,7 +52,7 @@ String getContentType(const String& path) {
 // Serial (UART0) используется для передачи команд на STM32.
 // UART0 ESP8266: TX = GPIO1, RX = GPIO3. RX STM32 подключается к TX ESP8266,
 // а TX STM32 — к RX ESP8266. Земля устройств должна быть общей.
-// Формат кадра: 0xAA 0x55 vx vy vz checksum, значения команд -100..100.
+// Формат кадра: 0xAA 0x55 vx vy vz checksum, значения команд -70..70.
 void sendToStm(int16_t vx, int16_t vy, int16_t vz) {
 
   uint8_t payload[3] = {
@@ -68,9 +69,9 @@ void sendToStm(int16_t vx, int16_t vy, int16_t vz) {
 }
 
 void processMotion(int16_t vx, int16_t vy, int16_t vz) {
-  currentVx = constrain(vx, -100, 100);
-  currentVy = constrain(vy, -100, 100);
-  currentVz = constrain(vz, -100, 100);
+  currentVx = constrain(vx, -MAX_COMMAND, MAX_COMMAND);
+  currentVy = constrain(vy, -MAX_COMMAND, MAX_COMMAND);
+  currentVz = constrain(vz, -MAX_COMMAND, MAX_COMMAND);
   lastCommandTime = millis();
   sendToStm(currentVx, currentVy, currentVz);
 }

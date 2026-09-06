@@ -14,11 +14,14 @@ int32_t Encoder::count() const {
 }
 
 int32_t Encoder::readDelta() {
+	// Получаем текущее значение счетчика энкодера
 	uint32_t currentCount = __HAL_TIM_GET_COUNTER(m_htim);
+	// Вычисляем дельту с учетом возможного переполнения счетчика
 	uint64_t counterRange = static_cast<uint64_t>(m_counterPeriod) + 1ULL;
 	int64_t delta = static_cast<int64_t>(currentCount)
 			- static_cast<int64_t>(m_previousCount);
 
+	// Обрабатываем переполнение счетчика
 	if (delta > static_cast<int64_t>(counterRange / 2ULL))
 		delta -= static_cast<int64_t>(counterRange);
 	else if (delta < -static_cast<int64_t>(counterRange / 2ULL))

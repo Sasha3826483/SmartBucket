@@ -38,10 +38,9 @@ float PIDController::update(float setpoint, float actual, float dt)
     float error = setpoint - actual;
 
     // Остановка двигателя при близости к нулю
-    if (setpoint == 0.0f && (actual >= -10.0f && actual <= 10.0f))
+    if (setpoint == 0.0f)// && (actual >= -5.0f && actual <= 5.0f))
     {
-        integral = 0.0f;
-        prevError = 0.0f;
+    	PIDController::reset();
         return 0.0f;
     }
 

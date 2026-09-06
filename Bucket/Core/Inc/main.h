@@ -97,6 +97,10 @@ void Error_Handler(void);
 #define pwmMotor_RF_GPIO_Port GPIOA
 #define pwmMotor_LF_Pin GPIO_PIN_11
 #define pwmMotor_LF_GPIO_Port GPIOA
+#define encoderPhasA_LF_Pin GPIO_PIN_15
+#define encoderPhasA_LF_GPIO_Port GPIOA
+#define encoderPhasB_LF_Pin GPIO_PIN_3
+#define encoderPhasB_LF_GPIO_Port GPIOB
 #define encoderPhasA_LB_Pin GPIO_PIN_4
 #define encoderPhasA_LB_GPIO_Port GPIOB
 #define encoderPhasB_LB_Pin GPIO_PIN_5

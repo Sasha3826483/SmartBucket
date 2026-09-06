@@ -303,13 +303,17 @@
     <!-- JavaScript обрабатывает управление и св€зь с ESP8266. -->
     <script>
       // „астота отправки команд на ESP8266: одна команда каждые 80 мс.
-      const HEARTBEAT_MS = 20;
+      const HEARTBEAT_MS = 80;
       // ќтклонение внутри этой зоны считаетс€ положением поко€.
       const JOYSTICK_DEAD_ZONE = 0.18;
       // —тепень кривой чувствительности: около центра движение м€гче.
       const JOYSTICK_RESPONSE = 1.7;
+      // ќтдельные настройки геймпада уменьшают резкость около центра.
+      const GAMEPAD_DEAD_ZONE = 0.25;
+      const GAMEPAD_RESPONSE = 2.5;
       // „ем меньше значение, тем медленнее текуща€ скорость догон€ет целевую.
       const SMOOTHING_FACTOR = 0.2;//0.16;
+      const MAX_COMMAND = 60;
 
       // —сылка на текстовый индикатор состо€ни€ WebSocket.
       const status = document.getElementById("status");
@@ -336,8 +340,8 @@
 
       function setMovement(vx, vy) {
         // —тик и клавиатура мен€ют цель, а не скорость напр€мую.
-        targetValues.vx = clamp(vx, -100, 100);
-        targetValues.vy = clamp(vy, -100, 100);
+        targetValues.vx = clamp(vx, -MAX_COMMAND, MAX_COMMAND);
+        targetValues.vy = clamp(vy, -MAX_COMMAND, MAX_COMMAND);
       }
 
       function shapeJoystickAxis(value) {
@@ -350,6 +354,15 @@
           (magnitude - JOYSTICK_DEAD_ZONE) / (1 - JOYSTICK_DEAD_ZONE);
         // ¬озвращаем исходный знак после изменени€ чувствительности.
         return Math.sign(value) * Math.pow(adjusted, JOYSTICK_RESPONSE);
+      }
+
+      function shapeGamepadAxis(value) {
+        const magnitude = Math.abs(value);
+        if (magnitude <= GAMEPAD_DEAD_ZONE) return 0;
+
+        const adjusted =
+          (magnitude - GAMEPAD_DEAD_ZONE) / (1 - GAMEPAD_DEAD_ZONE);
+        return Math.sign(value) * Math.pow(adjusted, GAMEPAD_RESPONSE);
       }
 
       function readGamepad() {
@@ -365,12 +378,12 @@
           if (gamepad) {
             gamepadIndex = gamepad.index;
             // —тандартна€ раскладка: левый стик X/Y и правый стик X.
-            const leftX = shapeJoystickAxis(gamepad.axes[0] || 0);
-            const leftY = shapeJoystickAxis(gamepad.axes[1] || 0);
-            const rightX = shapeJoystickAxis(gamepad.axes[2] || 0);
+            const leftX = shapeGamepadAxis(gamepad.axes[0] || 0);
+            const leftY = shapeGamepadAxis(gamepad.axes[1] || 0);
+            const rightX = shapeGamepadAxis(gamepad.axes[2] || 0);
 
-            setMovement(leftX * 100, -leftY * 100);
-            targetValues.vz = rightX * 100;
+            setMovement(leftX * MAX_COMMAND, -leftY * MAX_COMMAND);
+            targetValues.vz = rightX * MAX_COMMAND;
           }
         }
         // ѕланируем следующий опрос перед следующим кадром браузера.
@@ -451,7 +464,10 @@
         "moveKnob",
         (x, y) => {
           // Move использует две координаты: X дл€ vx и Y дл€ vy.
-          setMovement(shapeJoystickAxis(x) * 100, -shapeJoystickAxis(y) * 100);
+          setMovement(
+            shapeJoystickAxis(x) * MAX_COMMAND,
+            -shapeJoystickAxis(y) * MAX_COMMAND,
+          );
         },
         () => {
           setMovement(0, 0);
@@ -463,7 +479,7 @@
         "rotateKnob",
         (x) => {
           // Rotate использует горизонтальное отклонение дл€ vz.
-          targetValues.vz = shapeJoystickAxis(x) * 100;
+          targetValues.vz = shapeJoystickAxis(x) * MAX_COMMAND;
         },
         () => {
           targetValues.vz = 0;
@@ -472,16 +488,16 @@
 
       // “аблица переводит клавиши в команды движени€.
       const keyMap = {
-        w: [0, 100, 0],
-        ArrowUp: [0, 100, 0],
-        s: [0, -100, 0],
-        ArrowDown: [0, -100, 0],
-        a: [-100, 0, 0],
-        ArrowLeft: [-100, 0, 0],
-        d: [100, 0, 0],
-        ArrowRight: [100, 0, 0],
-        q: [0, 0, -100],
-        e: [0, 0, 100],
+        w: [0, MAX_COMMAND, 0],
+        ArrowUp: [0, MAX_COMMAND, 0],
+        s: [0, -MAX_COMMAND, 0],
+        ArrowDown: [0, -MAX_COMMAND, 0],
+        a: [-MAX_COMMAND, 0, 0],
+        ArrowLeft: [-MAX_COMMAND, 0, 0],
+        d: [MAX_COMMAND, 0, 0],
+        ArrowRight: [MAX_COMMAND, 0, 0],
+        q: [0, 0, -MAX_COMMAND],
+        e: [0, 0, MAX_COMMAND],
       };
 
       const pressed = new Set();
