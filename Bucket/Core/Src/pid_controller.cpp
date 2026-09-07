@@ -37,8 +37,8 @@ float PIDController::update(float setpoint, float actual, float dt)
 
     float error = setpoint - actual;
 
-    // Остановка двигателя при близости к нулю
-    if (setpoint == 0.0f)// && (actual >= -5.0f && actual <= 5.0f))
+    // Выключение регуляировния при близости к нулю
+    if ((setpoint == 0.0f) && (actual >= -1.0f && actual <= 1.0f))
     {
     	PIDController::reset();
         return 0.0f;
@@ -56,7 +56,6 @@ float PIDController::update(float setpoint, float actual, float dt)
         maxIntegral
     );
 
-    // Anti-windup: обновляем интеграл только если это помогает
     // Не обновляем, если выход насыщен и интеграл толкает его ещё сильнее в сторону насыщения
     float output = p + ki * newIntegral + d;
 
