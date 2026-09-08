@@ -32,12 +32,13 @@ float PIDController::update(float setpoint, float actual, float dt)
 
     float error = setpoint - actual;
 
-    // Выключение регуляировния при близости к нулю
-    if ((setpoint == 0.0f) && (actual >= -1.0f && actual <= 1.0f))
-    {
-    	PIDController::reset();
-        return 0.0f;
-    }
+    // Пока уберем выключение регулятора при близости к нулю, т.к. оно может мешать точной остановке
+    // // Выключение регуляировния при близости к нулю
+    // if ((setpoint == 0.0f) && (actual >= -1.0f && actual <= 1.0f))
+    // {
+    // 	PIDController::reset();
+    //     return 0.0f;
+    // }
 
     // Вычисление компонентов PID
     float p = kp * error;
