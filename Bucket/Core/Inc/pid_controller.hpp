@@ -3,6 +3,15 @@
 
 #include <stdint.h>
 
+template <typename T>
+T clampValue(T value, T minValue, T maxValue) {
+    if (value > maxValue)
+        return maxValue;
+    if (value < minValue)
+        return minValue;
+    return value;
+}
+
 class PIDController {
 private:
     float kp;           // Пропорциональный коэффициент

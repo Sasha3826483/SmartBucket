@@ -22,13 +22,8 @@ void PIDController::setIntegralLimit(float maxVal) {
 	maxIntegral = maxVal;
 }
 
-float clamp(float value, float minVal, float maxVal) {
-	if (value > maxVal)
-		return maxVal;
-	if (value < minVal)
-		return minVal;
-	return value;
-}
+// Предварительное объявление функции clampValue для использования в методе update
+extern float clampValue(float value, float minValue, float maxValue);
 
 float PIDController::update(float setpoint, float actual, float dt)
 {
@@ -50,7 +45,7 @@ float PIDController::update(float setpoint, float actual, float dt)
     float d = kd * derivative;
 
     // Интегрирование с ограничением
-    float newIntegral = clamp(
+    float newIntegral = clampValue(
         integral + error * dt,
         -maxIntegral,
         maxIntegral
@@ -65,7 +60,7 @@ float PIDController::update(float setpoint, float actual, float dt)
 
     // Пересчитываем выход с финальным интегралом и ограничиваем
     output = p + ki * integral + d;
-    output = clamp(output, minOutput, maxOutput);
+    output = clampValue(output, minOutput, maxOutput);
     outputPid = output;
     
     prevError = error;

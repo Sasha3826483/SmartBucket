@@ -32,6 +32,7 @@ extern UART_HandleTypeDef huart2;
 #define FRAME_PAYLOAD_SIZE 3
 #define COMMUNICATION_TIMEOUT_MS 300
 #define MAX_SPEED 176
+#define MAX_MEASURED_SPEED 300.0f
 
 // ---------------------------------------------------------
 // Глобальные переменные
@@ -55,6 +56,8 @@ volatile bool controlUpdate{false}; // Флаг обновления управ�
 
 // Переменные для управления скоростью и ПИД регулятора
 static float controlDt{0.01f};
+static float speedSamples[4][3]{};
+static bool speedFilterInitialized[4]{};
 
 // ПИД-параметры для настройки ПИД регулятора через SWD
 float Kp{0.5f}, Ki{15.0f}, Kd{0.00000f};
@@ -118,25 +121,71 @@ PIDController pidControllers[4] {
 	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
 	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
 	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f}
-	
-//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}, // LF
-//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}, // RF
-//	PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f}, // LB
-//	PIDController{0, 0, 0, -176.0f, 176.0f, 100.0f}  // RB
 };
 
-// Функция для ограничения скорости в диапазоне [-100, 100] %
-int16_t clampSpeed(int16_t speed) {
-	if (speed > 100)
-		return 100;
-	if (speed < -100)
-		return -100;
-	return speed;
+// ---------------------------------------------------------
+// Вспомогательные функции для фильтрации скорости
+
+// Функция для перестановки значений двух переменных
+void swapValues(float& first, float& second) {
+	float temporary = first;
+	first = second;
+	second = temporary;
+}
+
+// Функция для вычисления медианы из трех значений
+float medianOfThree(float first, float second, float third) {
+	if (first > second)
+		swapValues(first, second);
+	if (second > third)
+		swapValues(second, third);
+	if (first > second)
+		swapValues(first, second);
+	return second;
+}
+
+// Функция для фильтрации измеренной скорости
+float filterMeasuredSpeed(uint8_t motorIndex, float measuredSpeed) {
+	if (!speedFilterInitialized[motorIndex]) {
+		speedSamples[motorIndex][0] = measuredSpeed;
+		speedSamples[motorIndex][1] = measuredSpeed;
+		speedSamples[motorIndex][2] = measuredSpeed;
+		speedFilterInitialized[motorIndex] = true;
+		return measuredSpeed;
+	}
+
+	speedSamples[motorIndex][0] = speedSamples[motorIndex][1];
+	speedSamples[motorIndex][1] = speedSamples[motorIndex][2];
+	speedSamples[motorIndex][2] = measuredSpeed;
+
+	return medianOfThree(
+		speedSamples[motorIndex][0],
+		speedSamples[motorIndex][1],
+		speedSamples[motorIndex][2]);
+}
+
+// Функция для сброса фильтра скорости для конкретного мотора
+void resetSpeedFilter(uint8_t motorIndex) {
+	speedSamples[motorIndex][0] = 0.0f;
+	speedSamples[motorIndex][1] = 0.0f;
+	speedSamples[motorIndex][2] = 0.0f;
+	speedFilterInitialized[motorIndex] = false;
+}
+
+// ---------------------------------------------------------
+
+// Функция для ограничения значения в заданном диапазоне
+float clampValue(float value, float minValue, float maxValue) {
+	if (value > maxValue)
+		return maxValue;
+	if (value < minValue)
+		return minValue;
+	return value;
 }
 
 // Применение скорости к мотору с учетом направления
 void applyMotorSpeed(Motor &motor, int16_t speed) {
-	speed = clampSpeed(speed);
+	speed = clampValue(speed, int16_t{-100}, int16_t{100});
 	if (speed > 0) {
 		motor.setDirection(MotorDirection::FORWARD);
 		motor.setSpeed((uint8_t) speed);
@@ -159,6 +208,12 @@ void applyMotion() {
 	measureSpeed[MOTOR_LB] = float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
 	measureSpeed[MOTOR_RB] = float(encoders[MOTOR_RB].readDelta()) / controlDt / 44 / 56 * 60;
 
+	for (uint8_t i = 0; i < 4; ++i) {
+		measureSpeed[i] = clampValue(measureSpeed[i],
+				-MAX_MEASURED_SPEED, MAX_MEASURED_SPEED);
+		measureSpeed[i] = filterMeasuredSpeed(i, measureSpeed[i]);
+	}
+
 	// Вычисляем уставочные скорости для каждого мотора на основе команды движения (vx, vy, vz)
 	int16_t targetSpeed[4]{};
 	targetSpeed[MOTOR_LF] = motion.vy + motion.vx - motion.vz;
@@ -170,6 +225,8 @@ void applyMotion() {
 	float targetSpeedForPID[4]{};
 	for (uint8_t i = 0; i < 4; ++i) {
 		targetSpeedForPID[i] = (float(targetSpeed[i]) / 100) * MAX_SPEED;
+		if (targetSpeedForPID[i] == 0.0f)
+			resetSpeedFilter(i);
 	}
 
 	float pidOuts[4]{};
@@ -304,6 +361,7 @@ void cpp_main(void) {
 				// интегральной ошибки
 				motors[i].stop();
 				pidControllers[i].reset();
+				resetSpeedFilter(i);
 			}
 		}
 		

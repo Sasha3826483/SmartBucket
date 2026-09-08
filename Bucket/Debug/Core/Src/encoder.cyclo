@@ -2,4 +2,4 @@
 ../Core/Src/encoder.cpp:7:6:void Encoder::init()	1
 ../Core/Src/encoder.cpp:12:9:int32_t Encoder::count() const	1
 ../Core/Src/encoder.cpp:16:9:int32_t Encoder::readDelta()	3
-../Core/Src/encoder.cpp:34:6:void Encoder::reset()	1
+../Core/Src/encoder.cpp:39:6:void Encoder::reset()	1
