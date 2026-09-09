@@ -1,13 +1,15 @@
-../Core/Src/cpp_main.cpp:131:6:void swapValues(float&, float&)	1
+../Core/Src/cpp_main.cpp:130:6:void swapValues(float&, float&)	1
 ../Core/Src/cpp_main.cpp:137:7:float medianOfThree(float, float, float)	4
-../Core/Src/cpp_main.cpp:147:7:float filterMeasuredSpeed(uint8_t, float)	2
-../Core/Src/cpp_main.cpp:166:6:void resetSpeedFilter(uint8_t)	1
-../Core/Src/cpp_main.cpp:173:7:float clampValue(float, float, float)	3
-../Core/Src/cpp_main.cpp:182:6:void applyMotorSpeed(Motor&, int16_t)	3
-../Core/Src/cpp_main.cpp:196:6:void applyMotion()	5
-../Core/Src/cpp_main.cpp:243:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	2
-../Core/Src/cpp_main.cpp:252:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	10
-../Core/Src/cpp_main.cpp:296:6:void cpp_main()	8
+../Core/Src/cpp_main.cpp:148:7:float filterMeasuredSpeed(uint8_t, float)	2
+../Core/Src/cpp_main.cpp:168:6:void resetSpeedFilter(uint8_t)	1
+../Core/Src/cpp_main.cpp:178:7:float clampValue(float, float, float)	3
+../Core/Src/cpp_main.cpp:187:6:void applyMotorSpeed(Motor&, int16_t)	3
+../Core/Src/cpp_main.cpp:201:6:void applyMotion()	5
+../Core/Src/cpp_main.cpp:248:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	3
+../Core/Src/cpp_main.cpp:266:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	10
+../Core/Src/cpp_main.cpp:312:6:void sendTelemetryFrame()	8
+../Core/Src/cpp_main.cpp:341:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	2
+../Core/Src/cpp_main.cpp:349:6:void cpp_main()	10
 ../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	3
-../Core/Src/cpp_main.cpp:378:1:void __static_initialization_and_destruction_0()	1
-../Core/Src/cpp_main.cpp:378:1:cpp)	1
+../Core/Src/cpp_main.cpp:425:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/cpp_main.cpp:425:1:cpp)	1

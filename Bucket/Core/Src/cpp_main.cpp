@@ -53,6 +53,7 @@ volatile FrameState frameState{FrameState::WaitStart1}; // Состояние п
 volatile bool frameReady{false}; // Флаг готовности кадра
 volatile uint32_t lastValidFrameTick{0}; // Тик последнего действительного кадра
 volatile bool controlUpdate{false}; // Флаг обновления управления
+volatile bool telemetryUpdate{false};
 
 // Переменные для управления скоростью и ПИД регулятора
 static float controlDt{0.01f};
@@ -81,7 +82,6 @@ struct MotionCommand {
 // Глобальные переменные для хранения текущей и ожидаемой команды движения
 MotionCommand motion{}; // Текущая команда движения, которая применяется к моторам
 volatile MotionCommand pendingMotion{}; // Ожидаемая команда движения, которая будет 
-										// применена при следующем цикле управления
 
 // Перечисление для определения позиции мотора
 enum MotorPosition {
@@ -246,12 +246,21 @@ void applyMotion() {
 // Прерывание для расчета скорости и ПИД регулятора
 // ---------------------------------------------------------
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	static uint16_t cycleNumber{0};
+
+	// Таймер обновляется каждые 10 мс
+	if (cycleNumber == 10){
+		telemetryUpdate = true;
+		cycleNumber = 0;
+	}
+
 	if (htim == &htim10)
 		controlUpdate = true;
+		++cycleNumber;
 }
 
 // ---------------------------------------------------------
-// UART callback
+// UART callback. Прием байт
 // ---------------------------------------------------------
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
@@ -294,6 +303,45 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &rxByte, 1);
 }
 
+volatile bool txBusy = false;
+constexpr uint8_t buffSize{15};
+volatile uint8_t txBuff[buffSize];
+
+// uint8_t test{0};
+
+void sendTelemetryFrame(){
+	if (txBusy or frameState == FrameState::ReceivePayload) return;
+
+	txBuff[0] = 0xAA;
+	txBuff[1] = 0x55;
+	txBuff[2] = 0x20;
+	txBuff[3] = buffSize;
+
+	// Обратная связь
+	for (int i = 4; i < 8; ++i)
+		txBuff[i] = pidControllers[i - 4].getMeasureSpeed();
+	
+	// Уставки
+	for (int i = 8; i < 12; ++i)
+		txBuff[i] = pidControllers[i - 8].getTargetSpeed();
+
+	// Выход ПИД
+	for (int i = 12; i < 15; ++i)
+		txBuff[i] = pidControllers[i - 12].getOutputPid();
+	
+	// txBuff[4] = ++test;
+	//
+	// if (test == 100) test = 0;
+
+	txBusy = true;
+
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*) txBuff, buffSize);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart == &huart2) txBusy = false;
+}
+
 // ---------------------------------------------------------
 // Главная функция
 // ---------------------------------------------------------
@@ -318,6 +366,7 @@ void cpp_main(void) {
 	uint32_t lastControlTick{HAL_GetTick()}; // Тик последнего обновления управления
 	while (1) {
 		bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
+		bool updateTelemetry{false}; // Флаг для обновления данных телеметрии в esp32
 
 		// Короткая критическая секция для обмена данными с прерываниями
 		__disable_irq();
@@ -334,7 +383,15 @@ void cpp_main(void) {
 			controlUpdate = false;
 			updateRequired = true;
 		}
+		
+		if (telemetryUpdate) {
+			telemetryUpdate = false;
+			updateTelemetry = true;
+		}
+
 		__enable_irq();
+		
+		if (updateTelemetry) sendTelemetryFrame();
 
 		if (updateRequired) {
 			uint32_t now{HAL_GetTick()};
@@ -364,20 +421,5 @@ void cpp_main(void) {
 				resetSpeedFilter(i);
 			}
 		}
-		
-		// -----------------------------------------
-		// Настройка ПИД регулятора
-		
-		// Для настройки ПИД регулятора через SWD
-		// pidControllers[MOTOR_LF].setCoefficients(Kp, Ki, Kd);
-		// pidControllers[MOTOR_LF].setIntegralLimit(integralLimit);
-		
-		// Для отладки: сохраняем текущую уставку скорости и выход ПИД регулятора для вывода
-		// на график через SWD-интерфейс
-		setpointSpeed = pidControllers[MOTOR_LB].getTargetSpeed();
-		outputPid = pidControllers[MOTOR_LB].getOutputPid();
-		actualSpeed = pidControllers[MOTOR_LB].getMeasureSpeed();
-		
-		// -----------------------------------------
 	}
 }
