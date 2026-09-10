@@ -13,8 +13,8 @@
 // ======= Wi-Fi =======
 // Параметры подключения к Wi-Fi в режиме станции STA. При неудаче подключения
 // ESP8266 запускает собственную точку доступа (AP) с именем "RobotAP".
-// const char* ssid = "Redmi_9A";
-const char* ssid = "rtk26-28";
+const char* ssid = "Redmi_9A";
+// const char* ssid = "rtk26-28";
 const char* password = "96444335020";
 void debugPrint(const String& message) {
   Serial.println(message);
@@ -53,6 +53,24 @@ String getContentType(const String& path) {
 // UART0 ESP8266: TX = GPIO1, RX = GPIO3. RX STM32 подключается к TX ESP8266,
 // а TX STM32 — к RX ESP8266. Земля устройств должна быть общей.
 // Формат кадра: 0xAA 0x55 vx vy vz checksum, значения команд -70..70.
+const uint8_t FRAME_START_1 = 0xAA;
+const uint8_t FRAME_START_2 = 0x55;
+const uint8_t FRAME_TYPE_TELEMETRY = 0x20;
+const uint8_t FRAME_TELEMETRY_PAYLOAD_SIZE = 9;
+
+struct TelemetryData {
+  int16_t lf = 0;
+  int16_t rf = 0;
+  int16_t lb = 0;
+  int16_t rb = 0;
+  uint8_t status = 0;
+};
+
+TelemetryData latestTelemetry;
+
+// Явный прототип
+void sendTelemetryToClients(const TelemetryData& telemetry);
+
 void sendToStm(int16_t vx, int16_t vy, int16_t vz) {
 
   uint8_t payload[3] = {
@@ -74,6 +92,95 @@ void processMotion(int16_t vx, int16_t vy, int16_t vz) {
   currentVz = constrain(vz, -MAX_COMMAND, MAX_COMMAND);
   lastCommandTime = millis();
   sendToStm(currentVx, currentVy, currentVz);
+}
+
+void sendTelemetryToClients(const TelemetryData& telemetry) {
+  StaticJsonDocument<192> doc;
+  doc["type"] = "telemetry";
+  doc["lf"] = telemetry.lf;
+  doc["rf"] = telemetry.rf;
+  doc["lb"] = telemetry.lb;
+  doc["rb"] = telemetry.rb;
+  doc["status"] = telemetry.status;
+
+  String payload;
+  serializeJson(doc, payload);
+  webSocket.broadcastTXT(payload);
+}
+
+void parseTelemetry(uint8_t byte) {
+  static enum class ParserState : uint8_t {
+    WaitStart1,
+    WaitStart2,
+    ReadType,
+    ReadLen,
+    ReadPayload,
+    ReadChecksum
+  } state = ParserState::WaitStart1;
+
+  static uint8_t checksum = 0;
+  static uint8_t payload[FRAME_TELEMETRY_PAYLOAD_SIZE];
+  static uint8_t payloadIndex = 0;
+  static uint8_t frameLen = 0;
+  static uint8_t frameType = 0;
+
+  switch (state) {
+    case ParserState::WaitStart1:
+      if (byte == FRAME_START_1) {
+        state = ParserState::WaitStart2;
+      }
+      break;
+
+    case ParserState::WaitStart2:
+      if (byte == FRAME_START_2) {
+        checksum = 0;
+        state = ParserState::ReadType;
+      } else {
+        state = ParserState::WaitStart1;
+      }
+      break;
+
+    case ParserState::ReadType:
+      frameType = byte;
+      checksum ^= byte;
+      state = ParserState::ReadLen;
+      break;
+
+    case ParserState::ReadLen:
+      frameLen = byte;
+      checksum ^= byte;
+      payloadIndex = 0;
+      state = (frameLen == FRAME_TELEMETRY_PAYLOAD_SIZE)
+        ? ParserState::ReadPayload
+        : ParserState::WaitStart1;
+      break;
+
+    case ParserState::ReadPayload:
+      if (payloadIndex < FRAME_TELEMETRY_PAYLOAD_SIZE) {
+        payload[payloadIndex++] = byte;
+        checksum ^= byte;
+      }
+      if (payloadIndex >= frameLen) {
+        state = ParserState::ReadChecksum;
+      }
+      break;
+
+    case ParserState::ReadChecksum:
+      if (byte == checksum && frameType == FRAME_TYPE_TELEMETRY) {
+        latestTelemetry.lf = static_cast<int16_t>(
+          static_cast<uint16_t>(payload[0]) | (static_cast<uint16_t>(payload[1]) << 8));
+        latestTelemetry.rf = static_cast<int16_t>(
+          static_cast<uint16_t>(payload[2]) | (static_cast<uint16_t>(payload[3]) << 8));
+        latestTelemetry.lb = static_cast<int16_t>(
+          static_cast<uint16_t>(payload[4]) | (static_cast<uint16_t>(payload[5]) << 8));
+        latestTelemetry.rb = static_cast<int16_t>(
+          static_cast<uint16_t>(payload[6]) | (static_cast<uint16_t>(payload[7]) << 8));
+        latestTelemetry.status = payload[8];
+        sendTelemetryToClients(latestTelemetry);
+      }
+      state = ParserState::WaitStart1;
+      break;
+  }
 }
 
 // ======= Обработчики HTTP-запросов =======
@@ -186,6 +293,10 @@ void loop() {
   // Обработка HTTP-запросов и WebSocket-соединений.
   server.handleClient();
   webSocket.loop();
+
+  while (Serial.available() > 0) {
+    parseTelemetry(static_cast<uint8_t>(Serial.read()));
+  }
 
   // При потере связи остановить робота.
   if (millis() - lastCommandTime > SAFETY_TIMEOUT) {

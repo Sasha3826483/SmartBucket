@@ -30,6 +30,9 @@ extern UART_HandleTypeDef huart2;
 #define FRAME_START_1 0xAA
 #define FRAME_START_2 0x55
 #define FRAME_PAYLOAD_SIZE 3
+#define FRAME_TYPE_TELEMETRY 0x20
+#define FRAME_TELEMETRY_PAYLOAD_SIZE 9
+#define TELEMETRY_FRAME_SIZE 14
 #define COMMUNICATION_TIMEOUT_MS 300
 #define MAX_SPEED 176
 #define MAX_MEASURED_SPEED 300.0f
@@ -71,6 +74,8 @@ float integralLimit{0.0f};
 float setpointSpeed{0};
 float outputPid{0};
 float actualSpeed{0};
+
+int32_t dt{0};
 
 // Структура для хранения команды движения
 struct MotionCommand {
@@ -203,10 +208,10 @@ void applyMotion() {
 
 	// Переводим дельты энкодеров в обороты в минуту.
 	// Здесь 44 - количество импульсов на оборот, 56 - редуктор, 60 - перевод в минуты.
-	measureSpeed[MOTOR_LF] = float(-encoders[MOTOR_LF].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_RF] = float(encoders[MOTOR_RF].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_LB] = float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_RB] = float(encoders[MOTOR_RB].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LF] = 10;//float(-encoders[MOTOR_LF].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_RF] = 20;//float(encoders[MOTOR_RF].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LB] = 30;//float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_RB] = 40;//float(encoders[MOTOR_RB].readDelta()) / controlDt / 44 / 56 * 60;
 
 	for (uint8_t i = 0; i < 4; ++i) {
 		measureSpeed[i] = clampValue(measureSpeed[i],
@@ -246,17 +251,18 @@ void applyMotion() {
 // Прерывание для расчета скорости и ПИД регулятора
 // ---------------------------------------------------------
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	static uint16_t cycleNumber{0};
+	if (htim == &htim10){
 
-	// Таймер обновляется каждые 10 мс
-	if (cycleNumber == 10){
-		telemetryUpdate = true;
-		cycleNumber = 0;
-	}
-
-	if (htim == &htim10)
+		// Устанавливаем флаг обновления управления в каждом прерывании таймера ПИД регулятора (TIM10)
 		controlUpdate = true;
-		++cycleNumber;
+
+		static uint16_t cycleNumber{0};
+		// Каждые 10 циклов (примерно 100 мс) устанавливаем флаг обновления телеметрии для отправки данных на ESP32
+		if (++cycleNumber >= 10) {
+			telemetryUpdate = true;
+			cycleNumber = 0;
+		}
+	}
 }
 
 // ---------------------------------------------------------
@@ -303,39 +309,50 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &rxByte, 1);
 }
 
+// Переменная для хранения состояния передачи телеметрии по UART
 volatile bool txBusy = false;
-constexpr uint8_t buffSize{15};
-volatile uint8_t txBuff[buffSize];
+// Буфер для передачи телеметрии по UART
+uint8_t txBuff[TELEMETRY_FRAME_SIZE];
 
-// uint8_t test{0};
+// Функция для отправки телеметрии на ESP32 через UART
+void sendTelemetryFrame() {
+	// Если передача телеметрии уже идет или мы находимся в процессе приема кадра, выходим
+	if (txBusy || frameState == FrameState::ReceivePayload)
+		return;
 
-void sendTelemetryFrame(){
-	if (txBusy or frameState == FrameState::ReceivePayload) return;
-
-	txBuff[0] = 0xAA;
-	txBuff[1] = 0x55;
-	txBuff[2] = 0x20;
-	txBuff[3] = buffSize;
-
-	// Обратная связь
-	for (int i = 4; i < 8; ++i)
-		txBuff[i] = pidControllers[i - 4].getMeasureSpeed();
+	uint8_t* p = txBuff; // Указатель на текущую позицию в буфере передачи
 	
-	// Уставки
-	for (int i = 8; i < 12; ++i)
-		txBuff[i] = pidControllers[i - 8].getTargetSpeed();
+	// Формируем стартовый кадр телеметрии: синхрометка, тип кадра, длина полезной нагрузки
+	*p++ = 0xAA;
+	*p++ = 0x55;
+	*p++ = FRAME_TYPE_TELEMETRY;
+	*p++ = FRAME_TELEMETRY_PAYLOAD_SIZE;
 
-	// Выход ПИД
-	for (int i = 12; i < 15; ++i)
-		txBuff[i] = pidControllers[i - 12].getOutputPid();
+	// Лямбда-функция для добавления 16-битного значения в буфер передачи
+	auto appendInt16 = [&](int16_t value) {
+		*p++ = static_cast<uint8_t>(value & 0xFF);
+		*p++ = static_cast<uint8_t>((value >> 8) & 0xFF);
+	};
+
+	// Добавляем измеренные скорости каждого мотора в буфер передачи
+	for (uint8_t i = 0; i < 4; ++i) {
+		appendInt16(static_cast<int16_t>(pidControllers[i].getMeasureSpeed()));
+	}
+
+	// Добавляем статус робота в буфер передачи (например, 0x01 для нормального состояния)
+	*p++ = 0x01;
+
+	// Вычисляем контрольную сумму для кадра телеметрии и добавляем ее в буфер передачи
+	uint8_t checksum = 0;
+	for (uint8_t i = 2; i < static_cast<uint8_t>(p - txBuff); ++i)
+		checksum ^= txBuff[i];
 	
-	// txBuff[4] = ++test;
-	//
-	// if (test == 100) test = 0;
+	// Добавляем контрольную сумму в буфер передачи
+	*p++ = checksum;
 
 	txBusy = true;
-
-	HAL_UART_Transmit_IT(&huart2, (uint8_t*) txBuff, buffSize);
+	
+	HAL_UART_Transmit_IT(&huart2, txBuff, static_cast<uint16_t>(p - txBuff));
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
@@ -363,6 +380,8 @@ void cpp_main(void) {
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
 	lastValidFrameTick = HAL_GetTick();
 
+	// int32_t lastValidFrameTickTelemetry = HAL_GetTick();
+
 	uint32_t lastControlTick{HAL_GetTick()}; // Тик последнего обновления управления
 	while (1) {
 		bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
@@ -377,6 +396,7 @@ void cpp_main(void) {
 			motion.vz = pendingMotion.vz;
 			frameReady = false;
 		}
+
 		// Если пришло прерывание от таймера ПИД регулятора, устанавливаем флаг 
 		// обновления управления (TIM10)
 		if (controlUpdate) {
@@ -385,6 +405,9 @@ void cpp_main(void) {
 		}
 		
 		if (telemetryUpdate) {
+			// uint32_t nowTelemetry{HAL_GetTick()};
+			// dt = nowTelemetry - lastValidFrameTickTelemetry;
+			// lastValidFrameTickTelemetry = nowTelemetry;
 			telemetryUpdate = false;
 			updateTelemetry = true;
 		}

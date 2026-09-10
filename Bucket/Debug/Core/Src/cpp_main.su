@@ -1,15 +1,16 @@
-../Core/Src/cpp_main.cpp:130:6:void swapValues(float&, float&)	24	static
-../Core/Src/cpp_main.cpp:137:7:float medianOfThree(float, float, float)	24	static
-../Core/Src/cpp_main.cpp:148:7:float filterMeasuredSpeed(uint8_t, float)	16	static
-../Core/Src/cpp_main.cpp:168:6:void resetSpeedFilter(uint8_t)	16	static
-../Core/Src/cpp_main.cpp:178:7:float clampValue(float, float, float)	24	static
-../Core/Src/cpp_main.cpp:187:6:void applyMotorSpeed(Motor&, int16_t)	16	static
-../Core/Src/cpp_main.cpp:201:6:void applyMotion()	80	static
-../Core/Src/cpp_main.cpp:248:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
-../Core/Src/cpp_main.cpp:266:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	24	static
-../Core/Src/cpp_main.cpp:312:6:void sendTelemetryFrame()	32	static
-../Core/Src/cpp_main.cpp:341:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	16	static
-../Core/Src/cpp_main.cpp:349:6:void cpp_main()	24	static,ignoring_inline_asm
+../Core/Src/cpp_main.cpp:135:6:void swapValues(float&, float&)	24	static
+../Core/Src/cpp_main.cpp:142:7:float medianOfThree(float, float, float)	24	static
+../Core/Src/cpp_main.cpp:153:7:float filterMeasuredSpeed(uint8_t, float)	16	static
+../Core/Src/cpp_main.cpp:173:6:void resetSpeedFilter(uint8_t)	16	static
+../Core/Src/cpp_main.cpp:183:7:float clampValue(float, float, float)	24	static
+../Core/Src/cpp_main.cpp:192:6:void applyMotorSpeed(Motor&, int16_t)	16	static
+../Core/Src/cpp_main.cpp:206:6:void applyMotion()	80	static
+../Core/Src/cpp_main.cpp:253:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:271:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	24	static
+../Core/Src/cpp_main.cpp:324:21:sendTelemetryFrame()::<lambda(int16_t)>	16	static
+../Core/Src/cpp_main.cpp:314:6:void sendTelemetryFrame()	24	static
+../Core/Src/cpp_main.cpp:345:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:353:6:void cpp_main()	24	static,ignoring_inline_asm
 ../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	16	static
-../Core/Src/cpp_main.cpp:425:1:void __static_initialization_and_destruction_0()	32	static
-../Core/Src/cpp_main.cpp:425:1:cpp)	8	static
+../Core/Src/cpp_main.cpp:435:1:void __static_initialization_and_destruction_0()	32	static
+../Core/Src/cpp_main.cpp:435:1:cpp)	8	static
