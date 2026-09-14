@@ -444,12 +444,6 @@ void cpp_main(void) {
 			g_pendingMotion.vy = 0;
 			g_pendingMotion.vz = 0;
 			g_frameReady = false;
-//			for (uint8_t i = 0; i < 4; ++i) {
-//				// Останавливаем мотор и сбрасываем ПИД регулятор, чтобы избежать накопления
-//				// интегральной ошибки
-//				g_motors[i].stop();
-//				g_pidControllers[i].reset();
-//				resetSpeedFilter(i);
 //			}
 		}
 

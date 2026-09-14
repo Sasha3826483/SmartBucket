@@ -32,15 +32,6 @@ float PIDController::update(float setpoint, float actual, float dt)
 
     float error = setpoint - actual;
 
-    // При нулевой уставке и малой фактической скорости сбрасываем накопленный интеграл,
-    // чтобы он не оставался навсегда после одного ненулевого значения.
-//    if ((setpoint == 0.0f) && (actual >= -0.5f && actual <= 0.5f))
-//    {
-//        reset();
-//        outputPid = 0.0f;
-//        return 0.0f;
-//    }
-
     // Вычисление компонентов PID
     float p = kp * error;
     float derivative = (error - prevError) / dt;
@@ -83,7 +74,7 @@ float PIDController::getOutputPid() const {
 }
 
 void PIDController::reset() {
-	integral = 0.0f;
-	prevError = 0.0f;
-	outputPid = 0.0f;
+	this->integral = 0.0f;
+	this->prevError = 0.0f;
+	this->outputPid = 0.0f;
 }
