@@ -13,8 +13,8 @@
 // ======= Wi-Fi =======
 // Параметры подключения к Wi-Fi в режиме станции STA. При неудаче подключения
 // ESP8266 запускает собственную точку доступа (AP) с именем "RobotAP".
-const char* ssid = "Redmi_9A";
-// const char* ssid = "rtk26-28";
+//const char* ssid = "Redmi_9A";
+const char* ssid = "rtk26-28";
 const char* password = "96444335020";
 void debugPrint(const String& message) {
   Serial.println(message);

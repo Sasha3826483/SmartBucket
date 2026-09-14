@@ -14,12 +14,12 @@ void PIDController::setCoefficients(float kp, float ki, float kd) {
 }
 
 void PIDController::setOutputLimits(float minVal, float maxVal) {
-	minOutput = minVal;
-	maxOutput = maxVal;
+	this->minOutput = minVal;
+	this->maxOutput = maxVal;
 }
 
 void PIDController::setIntegralLimit(float maxVal) {
-	maxIntegral = maxVal;
+	this->maxIntegral = maxVal;
 }
 
 // Предварительное объявление функции clampValue для использования в методе update
@@ -32,13 +32,14 @@ float PIDController::update(float setpoint, float actual, float dt)
 
     float error = setpoint - actual;
 
-    // Пока уберем выключение регулятора при близости к нулю, т.к. оно может мешать точной остановке
-    // // Выключение регуляировния при близости к нулю
-    // if ((setpoint == 0.0f) && (actual >= -1.0f && actual <= 1.0f))
-    // {
-    // 	PIDController::reset();
-    //     return 0.0f;
-    // }
+    // При нулевой уставке и малой фактической скорости сбрасываем накопленный интеграл,
+    // чтобы он не оставался навсегда после одного ненулевого значения.
+//    if ((setpoint == 0.0f) && (actual >= -0.5f && actual <= 0.5f))
+//    {
+//        reset();
+//        outputPid = 0.0f;
+//        return 0.0f;
+//    }
 
     // Вычисление компонентов PID
     float p = kp * error;
@@ -84,4 +85,5 @@ float PIDController::getOutputPid() const {
 void PIDController::reset() {
 	integral = 0.0f;
 	prevError = 0.0f;
+	outputPid = 0.0f;
 }

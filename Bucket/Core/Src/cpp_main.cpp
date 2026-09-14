@@ -27,15 +27,15 @@ extern UART_HandleTypeDef huart2;
 
 // ---------------------------------------------------------
 // Константы и настройки
-#define FRAME_START_1 0xAA
-#define FRAME_START_2 0x55
-#define FRAME_PAYLOAD_SIZE 3
-#define FRAME_TYPE_TELEMETRY 0x20
-#define FRAME_TELEMETRY_PAYLOAD_SIZE 9
-#define TELEMETRY_FRAME_SIZE 14
-#define COMMUNICATION_TIMEOUT_MS 300
-#define MAX_SPEED 176
-#define MAX_MEASURED_SPEED 300.0f
+#define g_FRAME_START_1 0xAA
+#define g_FRAME_START_2 0x55
+#define g_FRAME_PAYLOAD_SIZE 3
+#define g_FRAME_TYPE_TELEMETRY 0x20
+#define g_FRAME_TELEMETRY_PAYLOAD_SIZE 9
+#define g_TELEMETRY_FRAME_SIZE 14
+#define g_COMMUNICATION_TIMEOUT_MS 300
+#define g_MAX_SPEED 176
+#define g_MAX_MEASURED_SPEED 300.0f
 
 // ---------------------------------------------------------
 // Глобальные переменные
@@ -49,33 +49,34 @@ enum class FrameState : uint8_t {
 };
 
 // Переменные для UART приема данных
-volatile uint8_t rxByte; // Переменная для хранения принятого байта по UART
-volatile uint8_t framePayload[FRAME_PAYLOAD_SIZE]; // Буфер для хранения полезной нагрузки кадра
-volatile uint8_t frameIndex{0}; // Индекс текущего байта в кадре
-volatile FrameState frameState{FrameState::WaitStart1}; // Состояние приема кадра
-volatile bool frameReady{false}; // Флаг готовности кадра
-volatile uint32_t lastValidFrameTick{0}; // Тик последнего действительного кадра
-volatile bool controlUpdate{false}; // Флаг обновления управления
-volatile bool telemetryUpdate{false};
+volatile uint8_t g_rxByte; // Переменная для хранения принятого байта по UART
+volatile uint8_t g_framePayload[g_FRAME_PAYLOAD_SIZE]; // Буфер для хранения полезной нагрузки кадра
+volatile uint8_t g_frameIndex{0}; // Индекс текущего байта в кадре
+volatile FrameState g_frameState{FrameState::WaitStart1}; // Состояние приема кадра
+volatile bool g_frameReady{false}; // Флаг готовности кадра
+volatile uint32_t g_lastValidFrameTick{0}; // Тик последнего действительного кадра
+volatile bool g_controlUpdate{false}; // Флаг обновления управления
+volatile bool g_telemetryUpdate{false};
+volatile bool g_resetPid{false}; // Флаг сброса ПИД регулятора
 
 // Переменные для управления скоростью и ПИД регулятора
-static float controlDt{0.01f};
-static float speedSamples[4][3]{};
-static bool speedFilterInitialized[4]{};
+static float g_controlDt{0.01f};
+static float g_speedSamples[4][3]{};
+static bool g_speedFilterInitialized[4]{};
 
 // ПИД-параметры для настройки ПИД регулятора через SWD
-float Kp{0.5f}, Ki{15.0f}, Kd{0.00000f};
+float g_Kp{1.0f}, g_Ki{15.0f}, g_Kd{0.01f};
 
 // Ограничение интеграла для ПИД регулятора, чтобы избежать windup
-float integralLimit{0.0f};
+float g_integralLimit{0.0f};
 
 // Для отладки: текущая уставка скорости и выход ПИД регулятора и измеренных 
 // оборотов для вывода на график через SWD-интерфейс
-float setpointSpeed{0};
-float outputPid{0};
-float actualSpeed{0};
+float g_setpointSpeed{0};
+float g_outputPid{0};
+float g_actualSpeed{0};
 
-int32_t dt{0};
+int32_t g_dt{0};
 
 // Структура для хранения команды движения
 struct MotionCommand {
@@ -85,8 +86,8 @@ struct MotionCommand {
 };
 
 // Глобальные переменные для хранения текущей и ожидаемой команды движения
-MotionCommand motion{}; // Текущая команда движения, которая применяется к моторам
-volatile MotionCommand pendingMotion{}; // Ожидаемая команда движения, которая будет 
+MotionCommand g_motion{}; // Текущая команда движения, которая применяется к моторам
+volatile MotionCommand g_pendingMotion{}; // Ожидаемая команда движения, которая будет 
 
 // Перечисление для определения позиции мотора
 enum MotorPosition {
@@ -94,7 +95,7 @@ enum MotorPosition {
 };
 
 // Массив объектов каждого мотора
-Motor motors[] {
+Motor g_motors[] {
 	Motor{&htim1, TIM_CHANNEL_4,
 	AIN1_LF_GPIO_Port, AIN1_LF_Pin,
 		AIN2_LF_GPIO_Port, AIN2_LF_Pin},
@@ -113,7 +114,7 @@ Motor motors[] {
 };
 
 // Массив объектов каждого энкодера
-Encoder encoders[] {
+Encoder g_encoders[] {
 	Encoder{&htim3, 0xFFFFU}, // LF
 	Encoder{&htim5, 0xFFFFFFFFU},     // RF
 	Encoder{&htim2, 0xFFFFFFFFU},     // LB
@@ -121,11 +122,11 @@ Encoder encoders[] {
 };
 
 // Массив ПИД контроллеров для каждого мотора
-PIDController pidControllers[4] {
-	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
-	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
-	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f},
-	 PIDController{Kp, Ki, Kd, -176.0f, 176.0f, 100.0f}
+PIDController g_pidControllers[4] {
+	 PIDController{g_Kp, g_Ki, g_Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{g_Kp, g_Ki, g_Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{g_Kp, g_Ki, g_Kd, -176.0f, 176.0f, 100.0f},
+	 PIDController{g_Kp, g_Ki, g_Kd, -176.0f, 176.0f, 100.0f}
 };
 
 // ---------------------------------------------------------
@@ -151,30 +152,30 @@ float medianOfThree(float first, float second, float third) {
 
 // Функция для фильтрации измеренной скорости
 float filterMeasuredSpeed(uint8_t motorIndex, float measuredSpeed) {
-	if (!speedFilterInitialized[motorIndex]) {
-		speedSamples[motorIndex][0] = measuredSpeed;
-		speedSamples[motorIndex][1] = measuredSpeed;
-		speedSamples[motorIndex][2] = measuredSpeed;
-		speedFilterInitialized[motorIndex] = true;
+	if (!g_speedFilterInitialized[motorIndex]) {
+		g_speedSamples[motorIndex][0] = measuredSpeed;
+		g_speedSamples[motorIndex][1] = measuredSpeed;
+		g_speedSamples[motorIndex][2] = measuredSpeed;
+		g_speedFilterInitialized[motorIndex] = true;
 		return measuredSpeed;
 	}
 
-	speedSamples[motorIndex][0] = speedSamples[motorIndex][1];
-	speedSamples[motorIndex][1] = speedSamples[motorIndex][2];
-	speedSamples[motorIndex][2] = measuredSpeed;
+	g_speedSamples[motorIndex][0] = g_speedSamples[motorIndex][1];
+	g_speedSamples[motorIndex][1] = g_speedSamples[motorIndex][2];
+	g_speedSamples[motorIndex][2] = measuredSpeed;
 
 	return medianOfThree(
-		speedSamples[motorIndex][0],
-		speedSamples[motorIndex][1],
-		speedSamples[motorIndex][2]);
+		g_speedSamples[motorIndex][0],
+		g_speedSamples[motorIndex][1],
+		g_speedSamples[motorIndex][2]);
 }
 
 // Функция для сброса фильтра скорости для конкретного мотора
 void resetSpeedFilter(uint8_t motorIndex) {
-	speedSamples[motorIndex][0] = 0.0f;
-	speedSamples[motorIndex][1] = 0.0f;
-	speedSamples[motorIndex][2] = 0.0f;
-	speedFilterInitialized[motorIndex] = false;
+	g_speedSamples[motorIndex][0] = 0.0f;
+	g_speedSamples[motorIndex][1] = 0.0f;
+	g_speedSamples[motorIndex][2] = 0.0f;
+	g_speedFilterInitialized[motorIndex] = false;
 }
 
 // ---------------------------------------------------------
@@ -208,28 +209,28 @@ void applyMotion() {
 
 	// Переводим дельты энкодеров в обороты в минуту.
 	// Здесь 44 - количество импульсов на оборот, 56 - редуктор, 60 - перевод в минуты.
-	measureSpeed[MOTOR_LF] = 10;//float(-encoders[MOTOR_LF].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_RF] = 20;//float(encoders[MOTOR_RF].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_LB] = 30;//float(-encoders[MOTOR_LB].readDelta()) / controlDt / 44 / 56 * 60;
-	measureSpeed[MOTOR_RB] = 40;//float(encoders[MOTOR_RB].readDelta()) / controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LF] = float(-g_encoders[MOTOR_LF].readDelta()) / g_controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_RF] = float(g_encoders[MOTOR_RF].readDelta()) / g_controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_LB] = float(-g_encoders[MOTOR_LB].readDelta()) / g_controlDt / 44 / 56 * 60;
+	measureSpeed[MOTOR_RB] = float(g_encoders[MOTOR_RB].readDelta()) / g_controlDt / 44 / 56 * 60;
 
 	for (uint8_t i = 0; i < 4; ++i) {
 		measureSpeed[i] = clampValue(measureSpeed[i],
-				-MAX_MEASURED_SPEED, MAX_MEASURED_SPEED);
+				-g_MAX_MEASURED_SPEED, g_MAX_MEASURED_SPEED);
 		measureSpeed[i] = filterMeasuredSpeed(i, measureSpeed[i]);
 	}
 
 	// Вычисляем уставочные скорости для каждого мотора на основе команды движения (vx, vy, vz)
 	int16_t targetSpeed[4]{};
-	targetSpeed[MOTOR_LF] = motion.vy + motion.vx - motion.vz;
-	targetSpeed[MOTOR_RF] = motion.vy - motion.vx + motion.vz;
-	targetSpeed[MOTOR_LB] = motion.vy - motion.vx - motion.vz;
-	targetSpeed[MOTOR_RB] = motion.vy + motion.vx + motion.vz;
+	targetSpeed[MOTOR_LF] = g_motion.vy + g_motion.vx - g_motion.vz;
+	targetSpeed[MOTOR_RF] = g_motion.vy - g_motion.vx + g_motion.vz;
+	targetSpeed[MOTOR_LB] = g_motion.vy - g_motion.vx - g_motion.vz;
+	targetSpeed[MOTOR_RB] = g_motion.vy + g_motion.vx + g_motion.vz;
 
 	// Инициализируем уставочные значения скорости в об/мин
 	float targetSpeedForPID[4]{};
 	for (uint8_t i = 0; i < 4; ++i) {
-		targetSpeedForPID[i] = (float(targetSpeed[i]) / 100) * MAX_SPEED;
+		targetSpeedForPID[i] = (float(targetSpeed[i]) / 100) * g_MAX_SPEED;
 		if (targetSpeedForPID[i] == 0.0f)
 			resetSpeedFilter(i);
 	}
@@ -239,12 +240,12 @@ void applyMotion() {
 	// Вычисляем выход ПИД регулятора и применяем его к мотору. Пид-регулятор работает в об/мин, 
 	// поэтому нормируем его к диапазону [-100, 100], т.к. моторы управляются в процентах от 
 	// максимальной скорости
-	pidOuts[MOTOR_LF] = (pidControllers[MOTOR_LF].update(targetSpeedForPID[MOTOR_LF], measureSpeed[MOTOR_LF], controlDt) / MAX_SPEED) * 100;
-	pidOuts[MOTOR_RF] = (pidControllers[MOTOR_RF].update(targetSpeedForPID[MOTOR_RF], measureSpeed[MOTOR_RF], controlDt) / MAX_SPEED) * 100;
-	pidOuts[MOTOR_LB] = (pidControllers[MOTOR_LB].update(targetSpeedForPID[MOTOR_LB], measureSpeed[MOTOR_LB], controlDt) / MAX_SPEED) * 100;
-	pidOuts[MOTOR_RB] = (pidControllers[MOTOR_RB].update(targetSpeedForPID[MOTOR_RB], measureSpeed[MOTOR_RB], controlDt) / MAX_SPEED) * 100;
+	pidOuts[MOTOR_LF] = (g_pidControllers[MOTOR_LF].update(targetSpeedForPID[MOTOR_LF], measureSpeed[MOTOR_LF], g_controlDt) / g_MAX_SPEED) * 100;
+	pidOuts[MOTOR_RF] = (g_pidControllers[MOTOR_RF].update(targetSpeedForPID[MOTOR_RF], measureSpeed[MOTOR_RF], g_controlDt) / g_MAX_SPEED) * 100;
+	pidOuts[MOTOR_LB] = (g_pidControllers[MOTOR_LB].update(targetSpeedForPID[MOTOR_LB], measureSpeed[MOTOR_LB], g_controlDt) / g_MAX_SPEED) * 100;
+	pidOuts[MOTOR_RB] = (g_pidControllers[MOTOR_RB].update(targetSpeedForPID[MOTOR_RB], measureSpeed[MOTOR_RB], g_controlDt) / g_MAX_SPEED) * 100;
 	for (uint8_t i = 0; i < 4; ++i)
-		applyMotorSpeed(motors[i], pidOuts[i]);
+		applyMotorSpeed(g_motors[i], pidOuts[i]);
 }
 
 // ---------------------------------------------------------
@@ -254,13 +255,20 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim10){
 
 		// Устанавливаем флаг обновления управления в каждом прерывании таймера ПИД регулятора (TIM10)
-		controlUpdate = true;
+		g_controlUpdate = true;
 
-		static uint16_t cycleNumber{0};
+		static uint16_t telemetryCycleNumber{0};
 		// Каждые 10 циклов (примерно 100 мс) устанавливаем флаг обновления телеметрии для отправки данных на ESP32
-		if (++cycleNumber >= 10) {
-			telemetryUpdate = true;
-			cycleNumber = 0;
+		if (++telemetryCycleNumber >= 10) {
+			g_telemetryUpdate = true;
+			telemetryCycleNumber = 0;
+		}
+
+		// Сбрасываем PID, если уставка ноль и обратная связь тоже ноль (чтобы избежать накопления интегральной ошибки)
+		static uint16_t pidResetCycleNumber{0};
+		if (++pidResetCycleNumber >= 200) {
+			g_resetPid = true;
+			pidResetCycleNumber = 0;
 		}
 	}
 }
@@ -273,60 +281,60 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart != &huart2)
 		return;
 
-	uint8_t byte = rxByte;
+	uint8_t byte = g_rxByte;
 	static uint8_t checksum = 0;
 
-	if (frameState == FrameState::WaitStart1) {
-		if (byte == FRAME_START_1)
-			frameState = FrameState::WaitStart2;
-	} else if (frameState == FrameState::WaitStart2) {
-		if (byte == FRAME_START_2) {
-			frameState = FrameState::ReceivePayload;
-			frameIndex = 0;
+	if (g_frameState == FrameState::WaitStart1) {
+		if (byte == g_FRAME_START_1)
+			g_frameState = FrameState::WaitStart2;
+	} else if (g_frameState == FrameState::WaitStart2) {
+		if (byte == g_FRAME_START_2) {
+			g_frameState = FrameState::ReceivePayload;
+			g_frameIndex = 0;
 			checksum = 0;
 		} else {
-			frameState = FrameState::WaitStart1;
+			g_frameState = FrameState::WaitStart1;
 		}
-	} else if (frameState == FrameState::ReceivePayload) {
-		framePayload[frameIndex++] = byte;
+	} else if (g_frameState == FrameState::ReceivePayload) {
+		g_framePayload[g_frameIndex++] = byte;
 		checksum ^= byte;
-		if (frameIndex == FRAME_PAYLOAD_SIZE)
-			frameState = FrameState::WaitChecksum;
+		if (g_frameIndex == g_FRAME_PAYLOAD_SIZE)
+			g_frameState = FrameState::WaitChecksum;
 	} else {
 		if (byte == checksum) {
-			lastValidFrameTick = HAL_GetTick();
-			if (!frameReady) {
-				pendingMotion.vx = (int8_t) framePayload[0];
-				pendingMotion.vy = (int8_t) framePayload[1];
-				pendingMotion.vz = (int8_t) -framePayload[2];
-				frameReady = true;
+			g_lastValidFrameTick = HAL_GetTick();
+			if (!g_frameReady) {
+				g_pendingMotion.vx = (int8_t) g_framePayload[0];
+				g_pendingMotion.vy = (int8_t) g_framePayload[1];
+				g_pendingMotion.vz = (int8_t) -g_framePayload[2];
+				g_frameReady = true;
 			}
 		}
-		frameState = FrameState::WaitStart1;
+		g_frameState = FrameState::WaitStart1;
 	}
 
 	// Продолжаем принимать следующий байт по UART
-	HAL_UART_Receive_IT(&huart2, (uint8_t*) &rxByte, 1);
+	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
 }
 
 // Переменная для хранения состояния передачи телеметрии по UART
-volatile bool txBusy = false;
+volatile bool g_txBusy = false;
 // Буфер для передачи телеметрии по UART
-uint8_t txBuff[TELEMETRY_FRAME_SIZE];
+uint8_t g_txBuff[g_TELEMETRY_FRAME_SIZE];
 
 // Функция для отправки телеметрии на ESP32 через UART
 void sendTelemetryFrame() {
 	// Если передача телеметрии уже идет или мы находимся в процессе приема кадра, выходим
-	if (txBusy || frameState == FrameState::ReceivePayload)
+	if (g_txBusy || g_frameState == FrameState::ReceivePayload)
 		return;
 
-	uint8_t* p = txBuff; // Указатель на текущую позицию в буфере передачи
+	uint8_t* p = g_txBuff; // Указатель на текущую позицию в буфере передачи
 	
 	// Формируем стартовый кадр телеметрии: синхрометка, тип кадра, длина полезной нагрузки
 	*p++ = 0xAA;
 	*p++ = 0x55;
-	*p++ = FRAME_TYPE_TELEMETRY;
-	*p++ = FRAME_TELEMETRY_PAYLOAD_SIZE;
+	*p++ = g_FRAME_TYPE_TELEMETRY;
+	*p++ = g_FRAME_TELEMETRY_PAYLOAD_SIZE;
 
 	// Лямбда-функция для добавления 16-битного значения в буфер передачи
 	auto appendInt16 = [&](int16_t value) {
@@ -336,7 +344,7 @@ void sendTelemetryFrame() {
 
 	// Добавляем измеренные скорости каждого мотора в буфер передачи
 	for (uint8_t i = 0; i < 4; ++i) {
-		appendInt16(static_cast<int16_t>(pidControllers[i].getMeasureSpeed()));
+		appendInt16(static_cast<int16_t>(g_pidControllers[i].getMeasureSpeed()));
 	}
 
 	// Добавляем статус робота в буфер передачи (например, 0x01 для нормального состояния)
@@ -344,19 +352,19 @@ void sendTelemetryFrame() {
 
 	// Вычисляем контрольную сумму для кадра телеметрии и добавляем ее в буфер передачи
 	uint8_t checksum = 0;
-	for (uint8_t i = 2; i < static_cast<uint8_t>(p - txBuff); ++i)
-		checksum ^= txBuff[i];
+	for (uint8_t i = 2; i < static_cast<uint8_t>(p - g_txBuff); ++i)
+		checksum ^= g_txBuff[i];
 	
 	// Добавляем контрольную сумму в буфер передачи
 	*p++ = checksum;
 
-	txBusy = true;
+	g_txBusy = true;
 	
-	HAL_UART_Transmit_IT(&huart2, txBuff, static_cast<uint16_t>(p - txBuff));
+	HAL_UART_Transmit_IT(&huart2, g_txBuff, static_cast<uint16_t>(p - g_txBuff));
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart == &huart2) txBusy = false;
+	if (huart == &huart2) g_txBusy = false;
 }
 
 // ---------------------------------------------------------
@@ -366,8 +374,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 void cpp_main(void) {
 	// Инициализация моторов и энкодеров
 	for (uint8_t i = 0; i < 4; ++i) {
-		motors[i].init();
-		encoders[i].init();
+		g_motors[i].init();
+		g_encoders[i].init();
 	}
 
 	// Запускаем таймер для работы ШИМ
@@ -375,10 +383,10 @@ void cpp_main(void) {
 	// Запускаем таймер для обработки данных с энкодера
 	HAL_TIM_Base_Start_IT(&htim10);
 	// Начинаем принимать данные по UART в прерывании
-	HAL_UART_Receive_IT(&huart2, (uint8_t*) &rxByte, 1);
+	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
 
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
-	lastValidFrameTick = HAL_GetTick();
+	g_lastValidFrameTick = HAL_GetTick();
 
 	// int32_t lastValidFrameTickTelemetry = HAL_GetTick();
 
@@ -390,25 +398,25 @@ void cpp_main(void) {
 		// Короткая критическая секция для обмена данными с прерываниями
 		__disable_irq();
 		// Если пришел новый кадр, применяем команду движения до обновления управления
-		if (frameReady) {
-			motion.vx = pendingMotion.vx;
-			motion.vy = pendingMotion.vy;
-			motion.vz = pendingMotion.vz;
-			frameReady = false;
+		if (g_frameReady) {
+			g_motion.vx = g_pendingMotion.vx;
+			g_motion.vy = g_pendingMotion.vy;
+			g_motion.vz = g_pendingMotion.vz;
+			g_frameReady = false;
 		}
 
 		// Если пришло прерывание от таймера ПИД регулятора, устанавливаем флаг 
 		// обновления управления (TIM10)
-		if (controlUpdate) {
-			controlUpdate = false;
+		if (g_controlUpdate) {
+			g_controlUpdate = false;
 			updateRequired = true;
 		}
 		
-		if (telemetryUpdate) {
+		if (g_telemetryUpdate) {
 			// uint32_t nowTelemetry{HAL_GetTick()};
 			// dt = nowTelemetry - lastValidFrameTickTelemetry;
 			// lastValidFrameTickTelemetry = nowTelemetry;
-			telemetryUpdate = false;
+			g_telemetryUpdate = false;
 			updateTelemetry = true;
 		}
 
@@ -418,7 +426,7 @@ void cpp_main(void) {
 
 		if (updateRequired) {
 			uint32_t now{HAL_GetTick()};
-			controlDt = float((now - lastControlTick) > 0U ? now - lastControlTick : 10U) / 1000.0f;
+			g_controlDt = float((now - lastControlTick) > 0U ? now - lastControlTick : 10U) / 1000.0f;
 			lastControlTick = now;
 			
 			// Применяем команду движения к моторам с учетом ПИД регулятора
@@ -428,20 +436,35 @@ void cpp_main(void) {
 		// Если прошло больше 300 мс с момента последнего валидного кадра, останавливаем все моторы,
 		// обнуляем команды движения и сбрасываем ПИД регуляторы, чтобы избежать накопления 
 		// интегральной ошибки
-		if (HAL_GetTick() - lastValidFrameTick > COMMUNICATION_TIMEOUT_MS) {
-			motion.vx = 0;
-			motion.vy = 0;
-			motion.vz = 0;
-			pendingMotion.vx = 0;
-			pendingMotion.vy = 0;
-			pendingMotion.vz = 0;
-			frameReady = false;
+		if (HAL_GetTick() - g_lastValidFrameTick > g_COMMUNICATION_TIMEOUT_MS) {
+			g_motion.vx = 0;
+			g_motion.vy = 0;
+			g_motion.vz = 0;
+			g_pendingMotion.vx = 0;
+			g_pendingMotion.vy = 0;
+			g_pendingMotion.vz = 0;
+			g_frameReady = false;
+//			for (uint8_t i = 0; i < 4; ++i) {
+//				// Останавливаем мотор и сбрасываем ПИД регулятор, чтобы избежать накопления
+//				// интегральной ошибки
+//				g_motors[i].stop();
+//				g_pidControllers[i].reset();
+//				resetSpeedFilter(i);
+//			}
+		}
+
+		if (g_resetPid &&
+				g_motion.vx == 0 &&
+				g_motion.vy == 0 &&
+				g_motion.vz == 0 &&
+				g_encoders[MOTOR_LF].readDelta() == 0 &&
+				g_encoders[MOTOR_RF].readDelta() == 0 &&
+				g_encoders[MOTOR_LB].readDelta() == 0 &&
+				g_encoders[MOTOR_RB].readDelta() == 0) {
+			g_resetPid = false;
 			for (uint8_t i = 0; i < 4; ++i) {
-				// Останавливаем мотор и сбрасываем ПИД регулятор, чтобы избежать накопления 
-				// интегральной ошибки
-				motors[i].stop();
-				pidControllers[i].reset();
-				resetSpeedFilter(i);
+				// Сбрасываем ПИД регулятор, чтобы избежать накопления интегральной ошибки
+				g_pidControllers[i].reset();
 			}
 		}
 	}
