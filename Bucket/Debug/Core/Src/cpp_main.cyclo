@@ -12,5 +12,5 @@
 ../Core/Src/cpp_main.cpp:366:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	2
 ../Core/Src/cpp_main.cpp:374:6:void cpp_main()	19
 ../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	3
-../Core/Src/cpp_main.cpp:471:1:void __static_initialization_and_destruction_0()	1
-../Core/Src/cpp_main.cpp:471:1:cpp)	1
+../Core/Src/cpp_main.cpp:465:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/cpp_main.cpp:465:1:cpp)	1

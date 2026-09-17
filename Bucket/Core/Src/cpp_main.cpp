@@ -3,6 +3,7 @@
 #include "Motor.hpp"
 #include "encoder.hpp"
 #include "pid_controller.hpp"
+#include "filter.hpp"
 #include <stdint.h>
 
 // ---------------------------------------------------------
@@ -24,6 +25,9 @@ extern TIM_HandleTypeDef htim4;
 
 // UART Timer
 extern UART_HandleTypeDef huart2;
+
+// ADC
+extern ADC_HandleTypeDef hadc1;
 
 // ---------------------------------------------------------
 // Константы и настройки
@@ -61,8 +65,17 @@ volatile bool g_resetPid{false}; // Флаг сброса ПИД регулят�
 
 // Переменные для управления скоростью и ПИД регулятора
 static float g_controlDt{0.01f};
-static float g_speedSamples[4][3]{};
-static bool g_speedFilterInitialized[4]{};
+
+MovingAverageFilter<10> g_voltageAverageFilter;
+IFilter* g_VoltageFilter = &g_voltageAverageFilter;
+
+MedianFilter<3> g_speedMedianFilters[4];
+IFilter* g_speedFilters[4] {
+	&g_speedMedianFilters[0],
+	&g_speedMedianFilters[1],
+	&g_speedMedianFilters[2],
+	&g_speedMedianFilters[3]
+};
 
 // ПИД-параметры для настройки ПИД регулятора через SWD
 float g_Kp{1.0f}, g_Ki{15.0f}, g_Kd{0.01f};
@@ -129,57 +142,6 @@ PIDController g_pidControllers[4] {
 	 PIDController{g_Kp, g_Ki, g_Kd, -176.0f, 176.0f, 100.0f}
 };
 
-// ---------------------------------------------------------
-// Вспомогательные функции для фильтрации скорости
-
-// Функция для перестановки значений двух переменных
-void swapValues(float& first, float& second) {
-	float temporary = first;
-	first = second;
-	second = temporary;
-}
-
-// Функция для вычисления медианы из трех значений
-float medianOfThree(float first, float second, float third) {
-	if (first > second)
-		swapValues(first, second);
-	if (second > third)
-		swapValues(second, third);
-	if (first > second)
-		swapValues(first, second);
-	return second;
-}
-
-// Функция для фильтрации измеренной скорости
-float filterMeasuredSpeed(uint8_t motorIndex, float measuredSpeed) {
-	if (!g_speedFilterInitialized[motorIndex]) {
-		g_speedSamples[motorIndex][0] = measuredSpeed;
-		g_speedSamples[motorIndex][1] = measuredSpeed;
-		g_speedSamples[motorIndex][2] = measuredSpeed;
-		g_speedFilterInitialized[motorIndex] = true;
-		return measuredSpeed;
-	}
-
-	g_speedSamples[motorIndex][0] = g_speedSamples[motorIndex][1];
-	g_speedSamples[motorIndex][1] = g_speedSamples[motorIndex][2];
-	g_speedSamples[motorIndex][2] = measuredSpeed;
-
-	return medianOfThree(
-		g_speedSamples[motorIndex][0],
-		g_speedSamples[motorIndex][1],
-		g_speedSamples[motorIndex][2]);
-}
-
-// Функция для сброса фильтра скорости для конкретного мотора
-void resetSpeedFilter(uint8_t motorIndex) {
-	g_speedSamples[motorIndex][0] = 0.0f;
-	g_speedSamples[motorIndex][1] = 0.0f;
-	g_speedSamples[motorIndex][2] = 0.0f;
-	g_speedFilterInitialized[motorIndex] = false;
-}
-
-// ---------------------------------------------------------
-
 // Функция для ограничения значения в заданном диапазоне
 float clampValue(float value, float minValue, float maxValue) {
 	if (value > maxValue)
@@ -217,7 +179,7 @@ void applyMotion() {
 	for (uint8_t i = 0; i < 4; ++i) {
 		measureSpeed[i] = clampValue(measureSpeed[i],
 				-g_MAX_MEASURED_SPEED, g_MAX_MEASURED_SPEED);
-		measureSpeed[i] = filterMeasuredSpeed(i, measureSpeed[i]);
+		measureSpeed[i] = g_speedFilters[i]->update(measureSpeed[i]);
 	}
 
 	// Вычисляем уставочные скорости для каждого мотора на основе команды движения (vx, vy, vz)
@@ -232,7 +194,7 @@ void applyMotion() {
 	for (uint8_t i = 0; i < 4; ++i) {
 		targetSpeedForPID[i] = (float(targetSpeed[i]) / 100) * g_MAX_SPEED;
 		if (targetSpeedForPID[i] == 0.0f)
-			resetSpeedFilter(i);
+			g_speedFilters[i]->reset();
 	}
 
 	float pidOuts[4]{};
@@ -363,8 +325,23 @@ void sendTelemetryFrame() {
 	HAL_UART_Transmit_IT(&huart2, g_txBuff, static_cast<uint16_t>(p - g_txBuff));
 }
 
+// ---------------------------------------------------------
+// Callback для завершения передачи телеметрии по UART
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart2) g_txBusy = false;
+}
+
+// ---------------------------------------------------------
+// Callback для завершения преобразования АЦП
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	if (hadc == &hadc1) {
+		// Получаем значение напряжения батареи из АЦП
+		uint32_t adcValue = HAL_ADC_GetValue(hadc);
+		// Преобразуем значение АЦП в напряжение (в вольтах)
+		float batteryVoltage = (adcValue / 4095.0f) * 3.3f;
+		// С учетом резистивного делителя за 100% считаем напряжение 2.7V
+		batteryVoltage = (batteryVoltage / 2.7f) * 100.0f;
+	}
 }
 
 // ---------------------------------------------------------
@@ -384,6 +361,8 @@ void cpp_main(void) {
 	HAL_TIM_Base_Start_IT(&htim10);
 	// Начинаем принимать данные по UART в прерывании
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
+	// Запускаем АЦП для измерения напряжения батареи
+	HAL_ADC_Start(&hadc1);
 
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
 	g_lastValidFrameTick = HAL_GetTick();

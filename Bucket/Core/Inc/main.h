@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define encoderPhasA_RB_GPIO_Port GPIOA
 #define encoderPhasB_RB_Pin GPIO_PIN_1
 #define encoderPhasB_RB_GPIO_Port GPIOA
+#define VoltageSource_Pin GPIO_PIN_4
+#define VoltageSource_GPIO_Port GPIOA
 #define AIN1_LF_Pin GPIO_PIN_5
 #define AIN1_LF_GPIO_Port GPIOA
 #define AIN2_LF_Pin GPIO_PIN_6
