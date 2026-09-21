@@ -4,6 +4,7 @@
 #include "encoder.hpp"
 #include "pid_controller.hpp"
 #include "filter.hpp"
+#include "mlx90614.hpp"
 #include <stdint.h>
 
 // ---------------------------------------------------------
@@ -28,6 +29,9 @@ extern UART_HandleTypeDef huart2;
 
 // ADC
 extern ADC_HandleTypeDef hadc1;
+
+// MLX90614 по умолчанию использует 7-битный адрес 0x5A.
+extern I2C_HandleTypeDef hi2c1;
 
 // ---------------------------------------------------------
 // Константы и настройки
@@ -68,6 +72,10 @@ static float g_controlDt{0.01f};
 
 MovingAverageFilter<10> g_voltageAverageFilter;
 IFilter* g_VoltageFilter = &g_voltageAverageFilter;
+
+MLX90614 g_temperatureSensor{&hi2c1};
+float g_objectTemperatureCelsius{0.0f};
+volatile bool g_temperatureSensorReady{false};
 
 MedianFilter<3> g_speedMedianFilters[4];
 IFilter* g_speedFilters[4] {
@@ -210,9 +218,7 @@ void applyMotion() {
 		applyMotorSpeed(g_motors[i], pidOuts[i]);
 }
 
-// ---------------------------------------------------------
-// Прерывание для расчета скорости и ПИД регулятора
-// ---------------------------------------------------------
+// Прерывание таймера для обновления управления и телеметрии, а также сброса ПИД регулятора
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim10){
 
@@ -220,7 +226,7 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		g_controlUpdate = true;
 
 		static uint16_t telemetryCycleNumber{0};
-		// Каждые 10 циклов (примерно 100 мс) устанавливаем флаг обновления телеметрии для отправки данных на ESP32
+		// Каждые 10 циклов (100 мс) устанавливаем флаг обновления телеметрии для отправки данных на ESP32
 		if (++telemetryCycleNumber >= 10) {
 			g_telemetryUpdate = true;
 			telemetryCycleNumber = 0;
@@ -235,10 +241,7 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-// ---------------------------------------------------------
-// UART callback. Прием байт
-// ---------------------------------------------------------
-
+// Прерывание UART для приема данных от ESP32
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart != &huart2)
 		return;
@@ -325,13 +328,11 @@ void sendTelemetryFrame() {
 	HAL_UART_Transmit_IT(&huart2, g_txBuff, static_cast<uint16_t>(p - g_txBuff));
 }
 
-// ---------------------------------------------------------
 // Callback для завершения передачи телеметрии по UART
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart2) g_txBusy = false;
 }
 
-// ---------------------------------------------------------
 // Callback для завершения преобразования АЦП
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 	if (hadc == &hadc1) {
@@ -343,10 +344,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 		batteryVoltage = (batteryVoltage / 2.7f) * 100.0f;
 	}
 }
-
-// ---------------------------------------------------------
-// Главная функция
-// ---------------------------------------------------------
 
 void cpp_main(void) {
 	// Инициализация моторов и энкодеров
@@ -402,6 +399,12 @@ void cpp_main(void) {
 		__enable_irq();
 		
 		if (updateTelemetry) sendTelemetryFrame();
+
+		if (updateTelemetry) {
+			g_temperatureSensorReady =
+				g_temperatureSensor.readObjectTemperature(
+					g_objectTemperatureCelsius) == HAL_OK;
+		}
 
 		if (updateRequired) {
 			uint32_t now{HAL_GetTick()};

@@ -1,16 +1,31 @@
-../Core/Src/cpp_main.cpp:136:6:void swapValues(float&, float&)	24	static
-../Core/Src/cpp_main.cpp:143:7:float medianOfThree(float, float, float)	24	static
-../Core/Src/cpp_main.cpp:154:7:float filterMeasuredSpeed(uint8_t, float)	16	static
-../Core/Src/cpp_main.cpp:174:6:void resetSpeedFilter(uint8_t)	16	static
-../Core/Src/cpp_main.cpp:184:7:float clampValue(float, float, float)	24	static
-../Core/Src/cpp_main.cpp:193:6:void applyMotorSpeed(Motor&, int16_t)	16	static
-../Core/Src/cpp_main.cpp:207:6:void applyMotion()	80	static
-../Core/Src/cpp_main.cpp:254:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
-../Core/Src/cpp_main.cpp:280:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	24	static
-../Core/Src/cpp_main.cpp:340:21:sendTelemetryFrame()::<lambda(int16_t)>	16	static
-../Core/Src/cpp_main.cpp:326:6:void sendTelemetryFrame()	24	static
-../Core/Src/cpp_main.cpp:366:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	16	static
-../Core/Src/cpp_main.cpp:374:6:void cpp_main()	24	static,ignoring_inline_asm
+../Core/Inc/filter.hpp:10:10:IFilter::~IFilter()	16	static
+../Core/Inc/filter.hpp:10:10:virtual IFilter::~IFilter()	16	static
+../Core/Src/cpp_main.cpp:154:7:float clampValue(float, float, float)	24	static
+../Core/Src/cpp_main.cpp:163:6:void applyMotorSpeed(Motor&, int16_t)	16	static
+../Core/Src/cpp_main.cpp:177:6:void applyMotion()	80	static
+../Core/Src/cpp_main.cpp:222:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:245:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	24	static
+../Core/Src/cpp_main.cpp:305:21:sendTelemetryFrame()::<lambda(int16_t)>	16	static
+../Core/Src/cpp_main.cpp:291:6:void sendTelemetryFrame()	24	static
+../Core/Src/cpp_main.cpp:332:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:337:6:void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef*)	24	static
+../Core/Src/cpp_main.cpp:348:6:void cpp_main()	24	static,ignoring_inline_asm
 ../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	16	static
-../Core/Src/cpp_main.cpp:465:1:void __static_initialization_and_destruction_0()	32	static
-../Core/Src/cpp_main.cpp:465:1:cpp)	8	static
+../Core/Inc/filter.hpp:23:7:MedianFilter<3>::~MedianFilter()	16	static
+../Core/Inc/filter.hpp:23:7:virtual MedianFilter<3>::~MedianFilter()	16	static
+../Core/Inc/filter.hpp:76:7:MovingAverageFilter<10>::~MovingAverageFilter()	16	static
+../Core/Inc/filter.hpp:76:7:virtual MovingAverageFilter<10>::~MovingAverageFilter()	16	static
+../Core/Src/cpp_main.cpp:447:1:void __static_initialization_and_destruction_0()	32	static
+../Core/Inc/i2c_device.hpp:16:10:I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:16:10:virtual I2CDevice::~I2CDevice()	16	static
+../Core/Inc/mlx90614.hpp:7:7:MLX90614::~MLX90614()	16	static
+../Core/Inc/mlx90614.hpp:7:7:virtual MLX90614::~MLX90614()	16	static
+../Core/Src/cpp_main.cpp:447:1:void __static_initialization_and_destruction_1()	16	static
+../Core/Inc/filter.hpp:25:8:float MedianFilter<WindowSize>::update(float) [with unsigned char WindowSize = 3]	40	static
+../Core/Inc/filter.hpp:55:7:void MedianFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 3]	16	static
+../Core/Inc/filter.hpp:61:8:float MedianFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 3]	16	static
+../Core/Inc/filter.hpp:78:8:float MovingAverageFilter<WindowSize>::update(float) [with unsigned char WindowSize = 10]	24	static
+../Core/Inc/filter.hpp:95:7:void MovingAverageFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 10]	16	static
+../Core/Inc/filter.hpp:102:8:float MovingAverageFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 10]	16	static
+../Core/Src/cpp_main.cpp:447:1:cpp)	8	static
+../Core/Src/cpp_main.cpp:447:1:cpp)	8	static

@@ -1,0 +1,11 @@
+../Core/Inc/i2c_device.hpp:22:10:uint8_t I2CDevice::getAddress() const	16	static
+../Core/Inc/i2c_device.hpp:16:10:I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:16:10:virtual I2CDevice::~I2CDevice()	16	static
+../Core/Src/mlx90614.cpp:3:1:MLX90614::MLX90614(I2C_HandleTypeDef*, uint8_t)	24	static
+../Core/Src/mlx90614.cpp:8:19:HAL_StatusTypeDef MLX90614::readObjectTemperature(float&, uint32_t)	24	static
+../Core/Src/mlx90614.cpp:14:19:HAL_StatusTypeDef MLX90614::readAmbientTemperature(float&, uint32_t)	24	static
+../Core/Src/mlx90614.cpp:20:6:bool MLX90614::isConnected(uint32_t) const	16	static
+../Core/Src/mlx90614.cpp:26:19:HAL_StatusTypeDef MLX90614::readTemperature(uint8_t, float&, uint32_t) const	48	static
+../Core/Src/mlx90614.cpp:60:9:static uint8_t MLX90614::calculatePec(const uint8_t*, uint8_t)	24	static
+../Core/Inc/mlx90614.hpp:7:7:MLX90614::~MLX90614()	16	static
+../Core/Inc/mlx90614.hpp:7:7:virtual MLX90614::~MLX90614()	16	static

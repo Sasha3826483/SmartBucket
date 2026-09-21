@@ -1,0 +1,8 @@
+../Core/Src/i2c_device.cpp:3:1:I2CDevice::I2CDevice(I2C_HandleTypeDef*, uint8_t)	1
+../Core/Src/i2c_device.cpp:7:6:bool I2CDevice::isReady(uint32_t) const	1
+../Core/Src/i2c_device.cpp:13:19:HAL_StatusTypeDef I2CDevice::readRegister(uint8_t, uint8_t*, uint16_t, uint32_t) const	1
+../Core/Src/i2c_device.cpp:25:19:HAL_StatusTypeDef I2CDevice::writeRegister(uint8_t, const uint8_t*, uint16_t, uint32_t) const	1
+../Core/Src/i2c_device.cpp:37:19:HAL_StatusTypeDef I2CDevice::read(uint8_t*, uint16_t, uint32_t) const	1
+../Core/Src/i2c_device.cpp:47:19:HAL_StatusTypeDef I2CDevice::write(const uint8_t*, uint16_t, uint32_t) const	1
+../Core/Inc/i2c_device.hpp:16:10:I2CDevice::~I2CDevice()	1
+../Core/Inc/i2c_device.hpp:16:10:virtual I2CDevice::~I2CDevice()	1
