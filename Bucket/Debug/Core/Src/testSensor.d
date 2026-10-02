@@ -1,5 +1,6 @@
-Core/Src/cpp_main.o: ../Core/Src/cpp_main.cpp ../Core/Inc/cpp_main.hpp \
- ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+Core/Src/testSensor.o: ../Core/Src/testSensor.cpp \
+ ../Core/Inc/testSensor.hpp ../Core/Inc/i2c_device.hpp \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -31,13 +32,9 @@ Core/Src/cpp_main.o: ../Core/Src/cpp_main.cpp ../Core/Inc/cpp_main.hpp \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/Motor.hpp ../Core/Inc/encoder.hpp \
- ../Core/Inc/pid_controller.hpp ../Core/Inc/filter.hpp \
- ../Core/Inc/mlx90614.hpp ../Core/Inc/i2c_device.hpp \
- ../Core/Inc/testSensor.hpp
-../Core/Inc/cpp_main.hpp:
-../Core/Inc/main.h:
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+../Core/Inc/testSensor.hpp:
+../Core/Inc/i2c_device.hpp:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:
@@ -71,10 +68,3 @@ Core/Src/cpp_main.o: ../Core/Src/cpp_main.cpp ../Core/Inc/cpp_main.hpp \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-../Core/Inc/Motor.hpp:
-../Core/Inc/encoder.hpp:
-../Core/Inc/pid_controller.hpp:
-../Core/Inc/filter.hpp:
-../Core/Inc/mlx90614.hpp:
-../Core/Inc/i2c_device.hpp:
-../Core/Inc/testSensor.hpp:

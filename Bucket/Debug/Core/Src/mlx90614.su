@@ -1,6 +1,6 @@
-../Core/Inc/i2c_device.hpp:22:10:uint8_t I2CDevice::getAddress() const	16	static
-../Core/Inc/i2c_device.hpp:16:10:I2CDevice::~I2CDevice()	16	static
-../Core/Inc/i2c_device.hpp:16:10:virtual I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:21:10:uint8_t I2CDevice::getAddress() const	16	static
+../Core/Inc/i2c_device.hpp:15:10:I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:15:10:virtual I2CDevice::~I2CDevice()	16	static
 ../Core/Src/mlx90614.cpp:3:1:MLX90614::MLX90614(I2C_HandleTypeDef*, uint8_t)	24	static
 ../Core/Src/mlx90614.cpp:8:19:HAL_StatusTypeDef MLX90614::readObjectTemperature(float&, uint32_t)	24	static
 ../Core/Src/mlx90614.cpp:14:19:HAL_StatusTypeDef MLX90614::readAmbientTemperature(float&, uint32_t)	24	static

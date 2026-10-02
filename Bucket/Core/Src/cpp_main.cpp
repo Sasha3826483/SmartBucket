@@ -5,10 +5,8 @@
 #include "pid_controller.hpp"
 #include "filter.hpp"
 #include "mlx90614.hpp"
+#include "testSensor.hpp"
 #include <stdint.h>
-
-// ---------------------------------------------------------
-// Глобальные объекты для управления моторами, энкодерами и ПИД регуляторами
 
 // PWM Timer
 extern TIM_HandleTypeDef htim1;
@@ -33,7 +31,6 @@ extern ADC_HandleTypeDef hadc1;
 // MLX90614 по умолчанию использует 7-битный адрес 0x5A.
 extern I2C_HandleTypeDef hi2c1;
 
-// ---------------------------------------------------------
 // Константы и настройки
 #define g_FRAME_START_1 0xAA
 #define g_FRAME_START_2 0x55
@@ -44,9 +41,6 @@ extern I2C_HandleTypeDef hi2c1;
 #define g_COMMUNICATION_TIMEOUT_MS 300
 #define g_MAX_SPEED 176
 #define g_MAX_MEASURED_SPEED 300.0f
-
-// ---------------------------------------------------------
-// Глобальные переменные
 
 // Состояния приема кадра
 enum class FrameState : uint8_t {
@@ -70,13 +64,21 @@ volatile bool g_resetPid{false}; // Флаг сброса ПИД регулят�
 // Переменные для управления скоростью и ПИД регулятора
 static float g_controlDt{0.01f};
 
-MovingAverageFilter<10> g_voltageAverageFilter;
+// Фильтры для сглаживания напряжения и скорости
+AverageFilter<10> g_voltageAverageFilter;
 IFilter* g_VoltageFilter = &g_voltageAverageFilter;
 
+// Объект для работы с инфракрасным термометром MLX90614 через интерфейс I2C
 MLX90614 g_temperatureSensor{&hi2c1};
+// Переменные для хранения температуры окружающей среды и объекта в градусах Цельсия
 float g_objectTemperatureCelsius{0.0f};
+// Флаг готовности датчика температуры
 volatile bool g_temperatureSensorReady{false};
 
+testI2C g_testSensor{&hi2c1};
+float g_testValue{0.0f};
+
+// Фильтры для сглаживания скорости каждого мотора
 MedianFilter<3> g_speedMedianFilters[4];
 IFilter* g_speedFilters[4] {
 	&g_speedMedianFilters[0],
@@ -85,19 +87,8 @@ IFilter* g_speedFilters[4] {
 	&g_speedMedianFilters[3]
 };
 
-// ПИД-параметры для настройки ПИД регулятора через SWD
+// ПИД-параметры для настройки ПИД регулятора через
 float g_Kp{1.0f}, g_Ki{15.0f}, g_Kd{0.01f};
-
-// Ограничение интеграла для ПИД регулятора, чтобы избежать windup
-float g_integralLimit{0.0f};
-
-// Для отладки: текущая уставка скорости и выход ПИД регулятора и измеренных 
-// оборотов для вывода на график через SWD-интерфейс
-float g_setpointSpeed{0};
-float g_outputPid{0};
-float g_actualSpeed{0};
-
-int32_t g_dt{0};
 
 // Структура для хранения команды движения
 struct MotionCommand {
@@ -159,7 +150,7 @@ float clampValue(float value, float minValue, float maxValue) {
 	return value;
 }
 
-// Применение скорости к мотору с учетом направления
+// Функция для задания скорости и направления вращения мотора
 void applyMotorSpeed(Motor &motor, int16_t speed) {
 	speed = clampValue(speed, int16_t{-100}, int16_t{100});
 	if (speed > 0) {
@@ -173,7 +164,7 @@ void applyMotorSpeed(Motor &motor, int16_t speed) {
 	}
 }
 
-// Применение команды движения к роботу (vx, vy, vz) к каждому мотору с учетом ПИД регулятора
+// Функция для применения команды движения (vx, vy, vz) к каждому мотору с учетом ПИД регулятора
 void applyMotion() {
 	float measureSpeed[4]{};
 
@@ -206,7 +197,6 @@ void applyMotion() {
 	}
 
 	float pidOuts[4]{};
-	
 	// Вычисляем выход ПИД регулятора и применяем его к мотору. Пид-регулятор работает в об/мин, 
 	// поэтому нормируем его к диапазону [-100, 100], т.к. моторы управляются в процентах от 
 	// максимальной скорости
@@ -328,12 +318,12 @@ void sendTelemetryFrame() {
 	HAL_UART_Transmit_IT(&huart2, g_txBuff, static_cast<uint16_t>(p - g_txBuff));
 }
 
-// Callback для завершения передачи телеметрии по UART
+// Прерывание UART для завершения передачи
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart2) g_txBusy = false;
 }
 
-// Callback для завершения преобразования АЦП
+// Прерывание АЦП для завершения преобразования
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 	if (hadc == &hadc1) {
 		// Получаем значение напряжения батареи из АЦП
@@ -364,9 +354,9 @@ void cpp_main(void) {
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
 	g_lastValidFrameTick = HAL_GetTick();
 
-	// int32_t lastValidFrameTickTelemetry = HAL_GetTick();
-
-	uint32_t lastControlTick{HAL_GetTick()}; // Тик последнего обновления управления
+	// Тик последнего обновления управления
+	uint32_t lastControlTick{HAL_GetTick()}; 	
+	
 	while (1) {
 		bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
 		bool updateTelemetry{false}; // Флаг для обновления данных телеметрии в esp32
@@ -389,9 +379,6 @@ void cpp_main(void) {
 		}
 		
 		if (g_telemetryUpdate) {
-			// uint32_t nowTelemetry{HAL_GetTick()};
-			// dt = nowTelemetry - lastValidFrameTickTelemetry;
-			// lastValidFrameTickTelemetry = nowTelemetry;
 			g_telemetryUpdate = false;
 			updateTelemetry = true;
 		}
@@ -404,8 +391,10 @@ void cpp_main(void) {
 			g_temperatureSensorReady =
 				g_temperatureSensor.readObjectTemperature(
 					g_objectTemperatureCelsius) == HAL_OK;
+			g_testSensor.readTest(g_testValue);
 		}
 
+		// Если пришло прерывание от таймера ПИД регулятора, обновляем управление моторами
 		if (updateRequired) {
 			uint32_t now{HAL_GetTick()};
 			g_controlDt = float((now - lastControlTick) > 0U ? now - lastControlTick : 10U) / 1000.0f;
@@ -429,6 +418,7 @@ void cpp_main(void) {
 //			}
 		}
 
+		// Если пришел флаг сброса ПИД регулятора и уставка ноль, а обратная связь тоже ноль, сбрасываем ПИД регуляторы
 		if (g_resetPid &&
 				g_motion.vx == 0 &&
 				g_motion.vy == 0 &&

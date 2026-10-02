@@ -1,0 +1,8 @@
+../Core/Inc/i2c_device.hpp:15:10:I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:15:10:virtual I2CDevice::~I2CDevice()	16	static
+../Core/Src/testSensor.cpp:3:1:testI2C::testI2C(I2C_HandleTypeDef*, uint8_t)	24	static
+../Core/Src/testSensor.cpp:8:19:HAL_StatusTypeDef testI2C::readTest(float&, uint32_t)	24	static
+../Core/Src/testSensor.cpp:14:6:bool testI2C::isConnected(uint32_t) const	16	static
+../Core/Src/testSensor.cpp:18:19:HAL_StatusTypeDef testI2C::readTestValue(uint8_t, float&, uint32_t) const	40	static
+../Core/Inc/testSensor.hpp:6:7:testI2C::~testI2C()	16	static
+../Core/Inc/testSensor.hpp:6:7:virtual testI2C::~testI2C()	16	static

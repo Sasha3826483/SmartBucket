@@ -4,5 +4,5 @@
 ../Core/Src/i2c_device.cpp:25:19:HAL_StatusTypeDef I2CDevice::writeRegister(uint8_t, const uint8_t*, uint16_t, uint32_t) const	40	static
 ../Core/Src/i2c_device.cpp:37:19:HAL_StatusTypeDef I2CDevice::read(uint8_t*, uint16_t, uint32_t) const	32	static
 ../Core/Src/i2c_device.cpp:47:19:HAL_StatusTypeDef I2CDevice::write(const uint8_t*, uint16_t, uint32_t) const	32	static
-../Core/Inc/i2c_device.hpp:16:10:I2CDevice::~I2CDevice()	16	static
-../Core/Inc/i2c_device.hpp:16:10:virtual I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:15:10:I2CDevice::~I2CDevice()	16	static
+../Core/Inc/i2c_device.hpp:15:10:virtual I2CDevice::~I2CDevice()	16	static

@@ -3,22 +3,23 @@
 
 #include <stdint.h>
 
-// Интерфейс фильтра
+// Интерфейс фильтра (асбстрактный базовый класс), который определяет методы для обновления, 
+// сброса и получения значения фильтра.
 class IFilter {
 public:
     // Виртуальный деструктор для корректного удаления объектов через указатель на базовый класс
 	virtual ~IFilter() = default;
-
-    // Чисто виртуальные методы, которые должны быть реализованы в производных классах
     // Метод для обновления фильтра с новым входным значением
 	virtual float update(float value) = 0;
     // Метод для сброса состояния фильтра с возможностью установки начального значения
 	virtual void reset(float value = 0.0f) = 0;
-    // Метод для получения текущего значения фильтра
+    // Метод для получения текущего значения
 	virtual float getValue() const = 0;
 };
 
-// Медианный фильтр (Median Filter)
+// Медианный фильтр применяется для ситуаций, когда нужно избавиться от выбросов в данных, 
+// так как он выбирает медиану из последних N значений.
+// Используется шаблонный параметр WindowSize для определения размера окна фильтра
 template <uint8_t WindowSize>
 class MedianFilter final : public IFilter {
 public:
@@ -63,6 +64,8 @@ public:
 	}
 
 private:
+	// Статическая проверка на этапе компиляции, чтобы убедиться, что размер окна фильтра 
+	// больше нуля
 	static_assert(WindowSize > 0, "MedianFilter window size must be greater than zero");
 
 	float m_samples[WindowSize]{};
@@ -71,9 +74,10 @@ private:
 	bool m_initialized{false};
 };
 
-// Фильтр среднего значения (Moving Average Filter)
+// Фильтр среднего значения (Moving Average Filter) используется для сглаживания данных 
+// путем усреднения последних N значений. Полезен для уменьшения шума в сигнале.
 template <uint8_t WindowSize>
-class MovingAverageFilter final : public IFilter {
+class AverageFilter final : public IFilter {
 public:
 	float update(float input) override {
 		if (!m_initialized) {
@@ -113,7 +117,9 @@ private:
 	bool m_initialized{false};
 };
 
-// Фильтр экспоненциального сглаживания (Exponential Filter)
+// Фильтр экспоненциального сглаживания (Exponential Filter) используется для сглаживания 
+// данных с учетом предыдущих значений. Полезен в ситуациях, когда нужно быстро реагировать 
+// на изменения сигнала, но при этом уменьшать шум.
 class ExponentialFilter final : public IFilter {
 public:
 	explicit ExponentialFilter(float alpha)
