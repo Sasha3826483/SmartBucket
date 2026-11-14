@@ -4,8 +4,8 @@
 #include "encoder.hpp"
 #include "pid_controller.hpp"
 #include "filter.hpp"
-#include "mlx90614.hpp"
-#include "testSensor.hpp"
+// #include "mlx90614.hpp"
+// #include "testSensor.hpp"
 #include <stdint.h>
 
 // PWM Timer
@@ -22,14 +22,17 @@ extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
+// Timer for Servo (16 bit)
+extern TIM_HandleTypeDef htim10;
+
 // UART Timer
 extern UART_HandleTypeDef huart2;
 
 // ADC
-extern ADC_HandleTypeDef hadc1;
+//extern ADC_HandleTypeDef hadc1;
 
 // MLX90614 по умолчанию использует 7-битный адрес 0x5A.
-extern I2C_HandleTypeDef hi2c1;
+// extern I2C_HandleTypeDef hi2c1;
 
 // Константы и настройки
 #define g_FRAME_START_1 0xAA
@@ -69,13 +72,13 @@ AverageFilter<10> g_voltageAverageFilter;
 IFilter* g_VoltageFilter = &g_voltageAverageFilter;
 
 // Объект для работы с инфракрасным термометром MLX90614 через интерфейс I2C
-MLX90614 g_temperatureSensor{&hi2c1};
+// MLX90614 g_temperatureSensor{&hi2c1};
 // Переменные для хранения температуры окружающей среды и объекта в градусах Цельсия
 float g_objectTemperatureCelsius{0.0f};
 // Флаг готовности датчика температуры
 volatile bool g_temperatureSensorReady{false};
 
-testI2C g_testSensor{&hi2c1};
+// testI2C g_testSensor{&hi2c1};
 float g_testValue{0.0f};
 
 // Фильтры для сглаживания скорости каждого мотора
@@ -324,16 +327,16 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 // Прерывание АЦП для завершения преобразования
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-	if (hadc == &hadc1) {
-		// Получаем значение напряжения батареи из АЦП
-		uint32_t adcValue = HAL_ADC_GetValue(hadc);
-		// Преобразуем значение АЦП в напряжение (в вольтах)
-		float batteryVoltage = (adcValue / 4095.0f) * 3.3f;
-		// С учетом резистивного делителя за 100% считаем напряжение 2.7V
-		batteryVoltage = (batteryVoltage / 2.7f) * 100.0f;
-	}
-}
+//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+//	if (hadc == &hadc1) {
+//		// Получаем значение напряжения батареи из АЦП
+//		uint32_t adcValue = HAL_ADC_GetValue(hadc);
+//		// Преобразуем значение АЦП в напряжение (в вольтах)
+//		float batteryVoltage = (adcValue / 4095.0f) * 3.3f;
+//		// С учетом резистивного делителя за 100% считаем напряжение 2.7V
+//		batteryVoltage = (batteryVoltage / 2.7f) * 100.0f;
+//	}
+//}
 
 void cpp_main(void) {
 	// Инициализация моторов и энкодеров
@@ -349,7 +352,10 @@ void cpp_main(void) {
 	// Начинаем принимать данные по UART в прерывании
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
 	// Запускаем АЦП для измерения напряжения батареи
-	HAL_ADC_Start(&hadc1);
+//	HAL_ADC_Start(&hadc1);
+	
+	HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
+	__HAL_TIM_SET_COMPARE(&htim10, TIM_CHANNEL_1, 2450);
 
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
 	g_lastValidFrameTick = HAL_GetTick();
@@ -358,6 +364,7 @@ void cpp_main(void) {
 	uint32_t lastControlTick{HAL_GetTick()}; 	
 	
 	while (1) {
+
 		bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
 		bool updateTelemetry{false}; // Флаг для обновления данных телеметрии в esp32
 
@@ -387,12 +394,12 @@ void cpp_main(void) {
 		
 		if (updateTelemetry) sendTelemetryFrame();
 
-		if (updateTelemetry) {
-			g_temperatureSensorReady =
-				g_temperatureSensor.readObjectTemperature(
-					g_objectTemperatureCelsius) == HAL_OK;
-			g_testSensor.readTest(g_testValue);
-		}
+//		if (updateTelemetry) {
+//			g_temperatureSensorReady =
+//				g_temperatureSensor.readObjectTemperature(
+//					g_objectTemperatureCelsius) == HAL_OK;
+//			g_testSensor.readTest(g_testValue);
+//		}
 
 		// Если пришло прерывание от таймера ПИД регулятора, обновляем управление моторами
 		if (updateRequired) {

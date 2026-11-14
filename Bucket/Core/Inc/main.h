@@ -69,12 +69,10 @@ void Error_Handler(void);
 #define encoderPhasA_RB_GPIO_Port GPIOA
 #define encoderPhasB_RB_Pin GPIO_PIN_1
 #define encoderPhasB_RB_GPIO_Port GPIOA
-#define VoltageSource_Pin GPIO_PIN_4
-#define VoltageSource_GPIO_Port GPIOA
-#define AIN1_LF_Pin GPIO_PIN_5
-#define AIN1_LF_GPIO_Port GPIOA
-#define AIN2_LF_Pin GPIO_PIN_6
-#define AIN2_LF_GPIO_Port GPIOA
+#define AIN2_LF_Pin GPIO_PIN_2
+#define AIN2_LF_GPIO_Port GPIOB
+#define AIN1_LF_Pin GPIO_PIN_10
+#define AIN1_LF_GPIO_Port GPIOB
 #define AIN2_RB_Pin GPIO_PIN_12
 #define AIN2_RB_GPIO_Port GPIOB
 #define AIN1_RB_Pin GPIO_PIN_13
