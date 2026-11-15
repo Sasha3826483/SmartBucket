@@ -1,6 +1,7 @@
 #include "cpp_main.hpp"
 #include "main.h"
-#include "Motor.hpp"
+#include "motor.hpp"
+#include "servo.hpp"
 #include "encoder.hpp"
 #include "pid_controller.hpp"
 #include "filter.hpp"
@@ -22,11 +23,11 @@ extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
-// Timer for Servo (16 bit)
-extern TIM_HandleTypeDef htim10;
-
 // UART Timer
 extern UART_HandleTypeDef huart2;
+
+// SPI
+extern SPI_HandleTypeDef hspi1;
 
 // ADC
 //extern ADC_HandleTypeDef hadc1;
@@ -55,6 +56,9 @@ enum class FrameState : uint8_t {
 
 // Переменные для UART приема данных
 volatile uint8_t g_rxByte; // Переменная для хранения принятого байта по UART
+volatile uint8_t g_spiTestByte{0};
+uint8_t g_spiRxByte{0};
+volatile bool g_spiRxError{false};
 volatile uint8_t g_framePayload[g_FRAME_PAYLOAD_SIZE]; // Буфер для хранения полезной нагрузки кадра
 volatile uint8_t g_frameIndex{0}; // Индекс текущего байта в кадре
 volatile FrameState g_frameState{FrameState::WaitStart1}; // Состояние приема кадра
@@ -74,12 +78,12 @@ IFilter* g_VoltageFilter = &g_voltageAverageFilter;
 // Объект для работы с инфракрасным термометром MLX90614 через интерфейс I2C
 // MLX90614 g_temperatureSensor{&hi2c1};
 // Переменные для хранения температуры окружающей среды и объекта в градусах Цельсия
-float g_objectTemperatureCelsius{0.0f};
+//float g_objectTemperatureCelsius{0.0f};
 // Флаг готовности датчика температуры
-volatile bool g_temperatureSensorReady{false};
+//volatile bool g_temperatureSensorReady{false};
 
 // testI2C g_testSensor{&hi2c1};
-float g_testValue{0.0f};
+//float g_testValue{0.0f};
 
 // Фильтры для сглаживания скорости каждого мотора
 MedianFilter<3> g_speedMedianFilters[4];
@@ -126,6 +130,18 @@ Motor g_motors[] {
 	Motor{&htim1, TIM_CHANNEL_1,
 	AIN1_RB_GPIO_Port, AIN1_RB_Pin,
 		AIN2_RB_GPIO_Port, AIN2_RB_Pin}
+};
+
+constexpr uint32_t SERVO_MIN_PULSE_TICKS{500};
+constexpr uint32_t SERVO_MAX_PULSE_TICKS{2450};
+constexpr uint32_t SERVO_INITIAL_PULSE_TICKS{1500};
+
+uint8_t testAngle{0};
+
+Servo g_servo{
+	PwmOutput{&htim10, TIM_CHANNEL_1},
+	SERVO_MAX_PULSE_TICKS,
+	SERVO_MIN_PULSE_TICKS
 };
 
 // Массив объектов каждого энкодера
@@ -275,6 +291,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
 }
 
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
+	if (hspi != &hspi1)
+		return;
+
+	g_spiTestByte = g_spiRxByte;
+	if (HAL_SPI_Receive_IT(&hspi1, &g_spiRxByte, 1) != HAL_OK)
+		g_spiRxError = true;
+}
+
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
+	if (hspi == &hspi1)
+		g_spiRxError = true;
+}
+
 // Переменная для хранения состояния передачи телеметрии по UART
 volatile bool g_txBusy = false;
 // Буфер для передачи телеметрии по UART
@@ -341,7 +371,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 void cpp_main(void) {
 	// Инициализация моторов и энкодеров
 	for (uint8_t i = 0; i < 4; ++i) {
-		g_motors[i].init();
+		if (g_motors[i].init() != HAL_OK)
+			Error_Handler();
 		g_encoders[i].init();
 	}
 
@@ -351,11 +382,13 @@ void cpp_main(void) {
 	HAL_TIM_Base_Start_IT(&htim10);
 	// Начинаем принимать данные по UART в прерывании
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
+	if (HAL_SPI_Receive_IT(&hspi1, &g_spiRxByte, 1) != HAL_OK)
+		Error_Handler();
 	// Запускаем АЦП для измерения напряжения батареи
 //	HAL_ADC_Start(&hadc1);
 	
-	HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
-	__HAL_TIM_SET_COMPARE(&htim10, TIM_CHANNEL_1, 2450);
+	if (g_servo.init(SERVO_INITIAL_PULSE_TICKS) != HAL_OK)
+		Error_Handler();
 
 	// Инициализируем тик последнего валидного кадра, чтобы избежать ложного срабатывания таймаута
 	g_lastValidFrameTick = HAL_GetTick();
@@ -363,32 +396,36 @@ void cpp_main(void) {
 	// Тик последнего обновления управления
 	uint32_t lastControlTick{HAL_GetTick()}; 	
 	
-	while (1) {
+while (1) {
 
-		bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
-		bool updateTelemetry{false}; // Флаг для обновления данных телеметрии в esp32
+	g_servo.setAngle(g_spiTestByte);
+	if (g_spiRxError)
+		Error_Handler();
 
-		// Короткая критическая секция для обмена данными с прерываниями
-		__disable_irq();
-		// Если пришел новый кадр, применяем команду движения до обновления управления
-		if (g_frameReady) {
-			g_motion.vx = g_pendingMotion.vx;
-			g_motion.vy = g_pendingMotion.vy;
-			g_motion.vz = g_pendingMotion.vz;
-			g_frameReady = false;
-		}
+	bool updateRequired{false}; // Флаг, указывающий, что требуется обновление управления
+	bool updateTelemetry{false}; // Флаг для обновления данных телеметрии в esp32
 
-		// Если пришло прерывание от таймера ПИД регулятора, устанавливаем флаг 
-		// обновления управления (TIM10)
-		if (g_controlUpdate) {
-			g_controlUpdate = false;
-			updateRequired = true;
-		}
-		
-		if (g_telemetryUpdate) {
-			g_telemetryUpdate = false;
-			updateTelemetry = true;
-		}
+	// Короткая критическая секция для обмена данными с прерываниями
+	__disable_irq();
+	// Если пришел новый кадр, применяем команду движения до обновления управления
+	if (g_frameReady) {
+		g_motion.vx = g_pendingMotion.vx;
+		g_motion.vy = g_pendingMotion.vy;
+		g_motion.vz = g_pendingMotion.vz;
+		g_frameReady = false;
+	}
+
+	// Если пришло прерывание от таймера ПИД регулятора, устанавливаем флаг
+	// обновления управления (TIM10)
+	if (g_controlUpdate) {
+		g_controlUpdate = false;
+		updateRequired = true;
+	}
+
+	if (g_telemetryUpdate) {
+		g_telemetryUpdate = false;
+		updateTelemetry = true;
+	}
 
 		__enable_irq();
 		

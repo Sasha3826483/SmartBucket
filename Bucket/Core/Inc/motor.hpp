@@ -8,7 +8,7 @@
 #ifndef INC_MOTOR_HPP_
 #define INC_MOTOR_HPP_
 
-#include "stm32f4xx_hal.h"
+#include "pwm_output.hpp"
 
 enum class MotorDirection {
 	FORWARD, BACKWARD, STOP
@@ -21,7 +21,7 @@ public:
 			uint16_t dirPin1, GPIO_TypeDef *dirPort2, uint16_t dirPin2);
 
 	// Инициализация (запуск ШИМ)
-	void init();
+	HAL_StatusTypeDef init();
 
 	// Управление скоростью: dutyCycle от 0 до 100%
 	void setSpeed(uint8_t percent);
@@ -33,8 +33,7 @@ public:
 	void stop();
 
 private:
-	TIM_HandleTypeDef *m_htim;
-	uint32_t m_channel;
+	PwmOutput m_pwm;
 
 	GPIO_TypeDef *m_dirPort1;
 	uint16_t m_dirPin1;
@@ -42,7 +41,6 @@ private:
 	GPIO_TypeDef *m_dirPort2;
 	uint16_t m_dirPin2;
 
-	uint8_t m_speedPercent;
 };
 
 #endif /* INC_MOTOR_HPP_ */
