@@ -1,0 +1,35 @@
+../Core/Inc/pwm_output.hpp:8:2:PwmOutput::PwmOutput(TIM_HandleTypeDef*, uint32_t)	24	static
+../Core/Inc/pwm_output.hpp:12:20:HAL_StatusTypeDef PwmOutput::start()	16	static
+../Core/Inc/pwm_output.hpp:20:7:void PwmOutput::setCompare(uint32_t)	16	static
+../Core/Inc/servo.hpp:8:2:Servo::Servo(PwmOutput, uint32_t, uint32_t)	24	static
+../Core/Inc/servo.hpp:13:20:HAL_StatusTypeDef Servo::init(uint32_t)	24	static
+../Core/Inc/servo.hpp:22:7:void Servo::setAngle(uint8_t)	24	static
+../Core/Inc/servo.hpp:31:7:void Servo::setPulseTicks(uint32_t)	16	static
+../Core/Inc/filter.hpp:11:10:IFilter::~IFilter()	16	static
+../Core/Inc/filter.hpp:11:10:virtual IFilter::~IFilter()	16	static
+../Core/Src/cpp_main.cpp:164:7:float clampValue(float, float, float)	24	static
+../Core/Src/cpp_main.cpp:173:6:void applyMotorSpeed(Motor&, int16_t)	16	static
+../Core/Src/cpp_main.cpp:187:6:void applyMotion()	80	static
+../Core/Src/cpp_main.cpp:231:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:254:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	24	static
+../Core/Src/cpp_main.cpp:294:6:void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:303:6:void HAL_SPI_ErrorCallback(SPI_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:328:21:sendTelemetryFrame()::<lambda(int16_t)>	16	static
+../Core/Src/cpp_main.cpp:314:6:void sendTelemetryFrame()	24	static
+../Core/Src/cpp_main.cpp:355:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	16	static
+../Core/Src/cpp_main.cpp:371:6:void cpp_main()	24	static,ignoring_inline_asm
+../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	16	static
+../Core/Inc/filter.hpp:24:7:MedianFilter<3>::~MedianFilter()	16	static
+../Core/Inc/filter.hpp:24:7:virtual MedianFilter<3>::~MedianFilter()	16	static
+../Core/Inc/filter.hpp:80:7:AverageFilter<10>::~AverageFilter()	16	static
+../Core/Inc/filter.hpp:80:7:virtual AverageFilter<10>::~AverageFilter()	16	static
+../Core/Src/cpp_main.cpp:481:1:void __static_initialization_and_destruction_0()	40	static
+../Core/Src/cpp_main.cpp:481:1:void __static_initialization_and_destruction_1()	16	static
+../Core/Inc/filter.hpp:26:8:float MedianFilter<WindowSize>::update(float) [with unsigned char WindowSize = 3]	40	static
+../Core/Inc/filter.hpp:56:7:void MedianFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 3]	16	static
+../Core/Inc/filter.hpp:62:8:float MedianFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 3]	16	static
+../Core/Inc/filter.hpp:82:8:float AverageFilter<WindowSize>::update(float) [with unsigned char WindowSize = 10]	24	static
+../Core/Inc/filter.hpp:99:7:void AverageFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 10]	16	static
+../Core/Inc/filter.hpp:106:8:float AverageFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 10]	16	static
+../Core/Src/cpp_main.cpp:481:1:cpp)	8	static
+../Core/Src/cpp_main.cpp:481:1:cpp)	8	static

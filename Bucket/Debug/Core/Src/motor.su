@@ -1,0 +1,9 @@
+../Core/Inc/pwm_output.hpp:8:2:PwmOutput::PwmOutput(TIM_HandleTypeDef*, uint32_t)	24	static
+../Core/Inc/pwm_output.hpp:12:20:HAL_StatusTypeDef PwmOutput::start()	16	static
+../Core/Inc/pwm_output.hpp:16:11:uint32_t PwmOutput::periodTicks() const	16	static
+../Core/Inc/pwm_output.hpp:20:7:void PwmOutput::setCompare(uint32_t)	16	static
+../Core/Src/motor.cpp:10:1:Motor::Motor(TIM_HandleTypeDef*, uint32_t, GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t)	24	static
+../Core/Src/motor.cpp:16:19:HAL_StatusTypeDef Motor::init()	24	static
+../Core/Src/motor.cpp:25:6:void Motor::setSpeed(uint8_t)	24	static
+../Core/Src/motor.cpp:31:6:void Motor::setDirection(MotorDirection)	16	static
+../Core/Src/motor.cpp:48:6:void Motor::stop()	16	static
