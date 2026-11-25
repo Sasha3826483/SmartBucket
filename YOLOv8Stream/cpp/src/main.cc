@@ -36,23 +36,23 @@ constexpr float platformSpeedGain{0.2f};
 float commandedServoAngle{0.0f};
 std::chrono::steady_clock::time_point lastServoUpdate{};
 
-uint8_t N{4};
-
-typedef struct control {
-  uint8_t angle;
-  int8_t Vx;
-  int8_t Vy;
-  int8_t Vz;
+struct ControlCommand {
+  uint8_t angle{0};
+  int8_t vx{0};
+  int8_t vy{0};
+  int8_t vz{0};
 };
 
-control control = {.angle = 0, .Vx = 0, .Vy = 0, .Vz = 0};
+ControlCommand controlCommand{};
 
 float g_controlDt{};
 
 int spi_push() {
 
   int spi_file;
-  uint8_t tx_buffer[4] = {control.angle, control.Vx, control.Vy, control.Vz};
+  uint8_t tx_buffer[4] = {controlCommand.angle, static_cast<uint8_t>(controlCommand.vx),
+                          static_cast<uint8_t>(controlCommand.vy),
+                          static_cast<uint8_t>(controlCommand.vz)};
   uint8_t rx_buffer[4] = {};
 
   // Open the SPI device
@@ -102,7 +102,7 @@ void moveServo(float angularVelocity) {
                std::min(angularVelocity, maxServoSpeedDegreesPerSecond));
   commandedServoAngle += angularVelocity * dt;
   commandedServoAngle = std::max(0.0f, std::min(commandedServoAngle, 90.0f));
-  control.angle = commandedServoAngle;
+  controlCommand.angle = static_cast<uint8_t>(commandedServoAngle);
 }
 
 void returnServoToBase() {
@@ -110,13 +110,13 @@ void returnServoToBase() {
   float difference = static_cast<float>(angleBase) - commandedServoAngle;
   float angleChange = std::max(-maxStep, std::min(difference, maxStep));
   commandedServoAngle += angleChange;
-  control.angle = static_cast<uint8_t>(std::lround(commandedServoAngle));
+  controlCommand.angle = static_cast<uint8_t>(std::lround(commandedServoAngle));
 }
 
 void moveMotor(float speed) {
   speed = std::max(static_cast<float>(-maxPlatformSpeed),
                    std::min(speed, static_cast<float>(maxPlatformSpeed)));
-  control.Vz = static_cast<int8_t>(std::lround(speed));
+  controlCommand.vz = static_cast<int8_t>(std::lround(speed));
 }
 
 // Возвращает стабильный различимый цвет для любого из 80 ID классов COCO.
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 
   commandedServoAngle = static_cast<float>(angleBase);
   lastServoUpdate = std::chrono::steady_clock::now();
-  control.angle = 0;
+  controlCommand.angle = 0;
   spi_push();
 
   // Непрерывная обработка кадров: захват → масштабирование → инференс →
