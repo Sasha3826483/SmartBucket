@@ -22,23 +22,38 @@
 
 #define SPI_DEVICE_PATH "/dev/spidev0.0"
 
-float fact{};
+float factY{};
+float factX{};
 float target{640.0 / 2};
 int angleBase{0};
-float error{0};
+float errorY{0};
+float errorX{0};
 constexpr float deadBandPixels{20.0f};
-constexpr float maxServoSpeedDegreesPerSecond{50.0f};
+constexpr float maxServoSpeedDegreesPerSecond{30.0f};
 constexpr float servoSpeedGain{0.2f};
+constexpr int8_t maxPlatformSpeed{50};
+constexpr float platformSpeedGain{0.2f};
 float commandedServoAngle{0.0f};
 std::chrono::steady_clock::time_point lastServoUpdate{};
 
+uint8_t N{4};
+
+typedef struct control {
+  uint8_t angle;
+  int8_t Vx;
+  int8_t Vy;
+  int8_t Vz;
+};
+
+control control = {.angle = 0, .Vx = 0, .Vy = 0, .Vz = 0};
+
 float g_controlDt{};
 
-int spi_tranf(uint8_t value) {
+int spi_push() {
 
   int spi_file;
-  uint8_t tx_buffer[1] = {value};
-  uint8_t rx_buffer[1];
+  uint8_t tx_buffer[4] = {control.angle, control.Vx, control.Vy, control.Vz};
+  uint8_t rx_buffer[4] = {};
 
   // Open the SPI device
   if ((spi_file = open(SPI_DEVICE_PATH, O_RDWR)) < 0) {
@@ -80,10 +95,6 @@ float getServoUpdateInterval() {
   return std::max(dt, 0.0f);
 }
 
-void transmitServoAngle() {
-  spi_tranf(static_cast<uint8_t>(std::lround(commandedServoAngle)));
-}
-
 void moveServo(float angularVelocity) {
   float dt = getServoUpdateInterval();
   angularVelocity =
@@ -91,7 +102,7 @@ void moveServo(float angularVelocity) {
                std::min(angularVelocity, maxServoSpeedDegreesPerSecond));
   commandedServoAngle += angularVelocity * dt;
   commandedServoAngle = std::max(0.0f, std::min(commandedServoAngle, 90.0f));
-  transmitServoAngle();
+  control.angle = commandedServoAngle;
 }
 
 void returnServoToBase() {
@@ -99,7 +110,13 @@ void returnServoToBase() {
   float difference = static_cast<float>(angleBase) - commandedServoAngle;
   float angleChange = std::max(-maxStep, std::min(difference, maxStep));
   commandedServoAngle += angleChange;
-  transmitServoAngle();
+  control.angle = static_cast<uint8_t>(std::lround(commandedServoAngle));
+}
+
+void moveMotor(float speed) {
+  speed = std::max(static_cast<float>(-maxPlatformSpeed),
+                   std::min(speed, static_cast<float>(maxPlatformSpeed)));
+  control.Vz = static_cast<int8_t>(std::lround(speed));
 }
 
 // Возвращает стабильный различимый цвет для любого из 80 ID классов COCO.
@@ -163,7 +180,8 @@ int main(int argc, char **argv) {
 
   commandedServoAngle = static_cast<float>(angleBase);
   lastServoUpdate = std::chrono::steady_clock::now();
-  spi_tranf(static_cast<uint8_t>(angleBase));
+  control.angle = 0;
+  spi_push();
 
   // Непрерывная обработка кадров: захват → масштабирование → инференс →
   // детекции.
@@ -173,6 +191,8 @@ int main(int argc, char **argv) {
     cap >> camFrame;
     if (camFrame.empty()) {
       returnServoToBase();
+      moveMotor(0.0f);
+      spi_push();
       continue;
     }
 
@@ -232,11 +252,10 @@ int main(int argc, char **argv) {
           cv::LINE_AA                     // Сглаживание линий
       );
 
-      float detectedY =
-          (static_cast<float>(y1) + static_cast<float>(y2)) / 2.0f;
       if (det_result->prop > highestConfidence) {
         highestConfidence = det_result->prop;
-        fact = detectedY;
+        factY = (static_cast<float>(y1) + static_cast<float>(y2)) / 2.0f;
+        factX = (static_cast<float>(x1) + static_cast<float>(x2)) / 2.0f;
         detectionFound = true;
       }
     }
@@ -252,19 +271,32 @@ int main(int argc, char **argv) {
     printf("Frame latency: %lf\n", g_controlDt);
 
     if (detectionFound) {
-      error = target - fact;
-      float errorOutsideDeadBand = std::abs(error) - deadBandPixels;
+
+      errorY = target - factY;
+      float errorOutsideDeadBand = std::abs(errorY) - deadBandPixels;
       if (errorOutsideDeadBand > 0.0f) {
         float speed = std::min(maxServoSpeedDegreesPerSecond,
                                errorOutsideDeadBand * servoSpeedGain);
-        moveServo(error > 0.0f ? speed : -speed);
+        moveServo(errorY > 0.0f ? speed : -speed);
       } else {
         moveServo(0.0f);
       }
+
+      errorX = target - factX;
+      errorOutsideDeadBand = std::abs(errorX) - deadBandPixels;
+      if (errorOutsideDeadBand > 0.0f) {
+        float speed =
+            std::min(static_cast<float>(maxPlatformSpeed),
+                     errorOutsideDeadBand * platformSpeedGain);
+        moveMotor(errorX > 0.0f ? speed : -speed);
+      } else {
+        moveMotor(0.0f);
+      }
     } else {
       returnServoToBase();
+      moveMotor(0.0f);
     }
+    spi_push();
   }
-
   return 0;
 }

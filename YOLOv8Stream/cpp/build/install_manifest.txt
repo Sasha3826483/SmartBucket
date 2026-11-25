@@ -1,0 +1,5 @@
+/mnt/d/SmartBucket/YOLOv8Stream/cpp/bin/HelloYolov8
+/mnt/d/SmartBucket/YOLOv8Stream/cpp/bin/model/labels.txt
+/mnt/d/SmartBucket/YOLOv8Stream/cpp/bin/model/yolov8.rknn
+/mnt/d/SmartBucket/YOLOv8Stream/cpp/bin/lib/librknnmrt.so
+/mnt/d/SmartBucket/YOLOv8Stream/cpp/bin/lib/librga.so

@@ -84,6 +84,21 @@
         color: var(--accent);
       }
 
+      .mode-toggle {
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        padding: 10px 14px;
+        background: #29433f;
+        color: #eef5f3;
+        font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+        cursor: pointer;
+      }
+
+      .mode-toggle.auto {
+        border-color: #e6b45c;
+        background: #493b22;
+      }
+
       .console {
         /* Grid используется, чтобы расположить джойстики в два столбца на десктопе. */
         display: grid;
@@ -259,7 +274,12 @@
       <!-- Шапка страницы: заголовок и статус соединения через WebSocket. -->
       <header>
         <h1>Robot</h1>
-        <span class="status" id="status">offline</span>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="mode-toggle" id="modeToggle" type="button" aria-pressed="false">
+            Mode: Manual
+          </button>
+          <span class="status" id="status">offline</span>
+        </div>
       </header>
 
       <!-- Здесь располагаются два джойстика для управления движением и поворотом. -->
@@ -330,6 +350,7 @@
 
       // Ссылки на элементы интерфейса и WebSocket-соединение.
       const status = document.getElementById("status");
+      const modeToggle = document.getElementById("modeToggle");
       const telemetryStatus = document.getElementById("telemetryStatus");
       const telemetryEls = {
         lf: document.getElementById("lfSpeed"),
@@ -343,8 +364,39 @@
       const targetValues = { vx: 0, vy: 0, vz: 0 };
       // Индекс активного геймпада, если он был обнаружен через navigator.getGamepads().
       let gamepadIndex = null;
+      let autoMode = false;
       let socket;
       let reconnectTimer;
+
+      function updateModeButton() {
+        modeToggle.textContent = autoMode ? "Mode: Auto" : "Mode: Manual";
+        modeToggle.classList.toggle("auto", autoMode);
+        modeToggle.setAttribute("aria-pressed", String(autoMode));
+      }
+
+      function sendControl() {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        socket.send(
+          JSON.stringify({
+            vx: Math.round(values.vx),
+            vy: Math.round(values.vy),
+            vz: Math.round(values.vz),
+            auto: autoMode,
+          }),
+        );
+      }
+
+      modeToggle.addEventListener("click", () => {
+        autoMode = !autoMode;
+        setMovement(0, 0);
+        targetValues.vz = 0;
+        values.vx = 0;
+        values.vy = 0;
+        values.vz = 0;
+        updateModeButton();
+        sendControl();
+      });
 
       function clamp(value, min, max) {
         // Ограничиваем значение диапазоном [min, max].
@@ -597,19 +649,12 @@
       }
 
       setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          // Отправляем текущие команды в JSON-формате через WebSocket на ESP8266.
-          socket.send(
-            JSON.stringify({
-              vx: Math.round(values.vx),
-              vy: Math.round(values.vy),
-              vz: Math.round(values.vz),
-            }),
-          );
-        }
+        // Передаём команды и выбранный режим управления ESP-01.
+        sendControl();
       }, HEARTBEAT_MS);
 
       updateDisplay();
+      updateModeButton();
       // Запускаем циклы обновления интерфейса и чтения геймпада.
       requestAnimationFrame(smoothValues);
       requestAnimationFrame(readGamepad);

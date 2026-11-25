@@ -38,7 +38,7 @@ extern SPI_HandleTypeDef hspi1;
 // Константы и настройки
 #define g_FRAME_START_1 0xAA
 #define g_FRAME_START_2 0x55
-#define g_FRAME_PAYLOAD_SIZE 3
+#define g_FRAME_PAYLOAD_SIZE 4
 #define g_FRAME_TYPE_TELEMETRY 0x20
 #define g_FRAME_TELEMETRY_PAYLOAD_SIZE 9
 #define g_TELEMETRY_FRAME_SIZE 14
@@ -56,16 +56,18 @@ enum class FrameState : uint8_t {
 
 // Переменные для UART приема данных
 volatile uint8_t g_rxByte; // Переменная для хранения принятого байта по UART
-volatile uint8_t g_spiTestByte{0};
-uint8_t g_spiRxByte{0};
+volatile uint8_t g_spiTestBytes[4];
+uint8_t g_spiRxBytes[4];
 volatile bool g_spiRxError{false};
 volatile uint8_t g_framePayload[g_FRAME_PAYLOAD_SIZE]; // Буфер для хранения полезной нагрузки кадра
 volatile uint8_t g_frameIndex{0}; // Индекс текущего байта в кадре
 volatile FrameState g_frameState{FrameState::WaitStart1}; // Состояние приема кадра
 volatile bool g_frameReady{false}; // Флаг готовности кадра
 volatile uint32_t g_lastValidFrameTick{0}; // Тик последнего действительного кадра
+volatile bool g_autoControlEnabled{true}; // false - ESP/UART, true - Luckfox/SPI
+volatile bool g_pendingAutoControlEnabled{false}; // Флаг для переключения режима управления
 volatile bool g_controlUpdate{false}; // Флаг обновления управления
-volatile bool g_telemetryUpdate{false};
+volatile bool g_telemetryUpdate{false}; // Флаг обновления телеметрии для отправки данных на ESP32
 volatile bool g_resetPid{false}; // Флаг сброса ПИД регулятора
 
 // Переменные для управления скоростью и ПИД регулятора
@@ -275,13 +277,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		if (g_frameIndex == g_FRAME_PAYLOAD_SIZE)
 			g_frameState = FrameState::WaitChecksum;
 	} else {
-		if (byte == checksum) {
-			g_lastValidFrameTick = HAL_GetTick();
+		if (byte == checksum && g_framePayload[3] <= 1) {
 			if (!g_frameReady) {
-				g_pendingMotion.vx = (int8_t) g_framePayload[0];
-				g_pendingMotion.vy = (int8_t) g_framePayload[1];
-				g_pendingMotion.vz = (int8_t) -g_framePayload[2];
-				g_frameReady = true;
+				bool requestedAutoMode = g_framePayload[3] == 1;
+				if (!requestedAutoMode || requestedAutoMode != g_autoControlEnabled) {
+					g_pendingAutoControlEnabled = requestedAutoMode;
+					if (requestedAutoMode) {
+						g_pendingMotion.vx = 0;
+						g_pendingMotion.vy = 0;
+						g_pendingMotion.vz = 0;
+					} else {
+						g_pendingMotion.vx = (int8_t) g_framePayload[0];
+						g_pendingMotion.vy = (int8_t) g_framePayload[1];
+						g_pendingMotion.vz = (int8_t) -g_framePayload[2];
+					}
+					g_lastValidFrameTick = HAL_GetTick();
+					g_frameReady = true;
+				}
 			}
 		}
 		g_frameState = FrameState::WaitStart1;
@@ -295,8 +307,18 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
 	if (hspi != &hspi1)
 		return;
 
-	g_spiTestByte = g_spiRxByte;
-	if (HAL_SPI_Receive_IT(&hspi1, &g_spiRxByte, 1) != HAL_OK)
+	for (int i{0}; i < 4; ++i)
+		g_spiTestBytes[i] = g_spiRxBytes[i];
+
+	if (g_autoControlEnabled && !g_frameReady) {
+		g_lastValidFrameTick = HAL_GetTick();
+		g_pendingMotion.vx = static_cast<int8_t>(g_spiRxBytes[1]);
+		g_pendingMotion.vy = static_cast<int8_t>(g_spiRxBytes[2]);
+		g_pendingMotion.vz = -(static_cast<int8_t>(g_spiRxBytes[3]));
+		g_frameReady = true;
+	}
+
+	if (HAL_SPI_Receive_IT(&hspi1, g_spiRxBytes, 4) != HAL_OK)
 		g_spiRxError = true;
 }
 
@@ -335,8 +357,9 @@ void sendTelemetryFrame() {
 		appendInt16(static_cast<int16_t>(g_pidControllers[i].getMeasureSpeed()));
 	}
 
-	// Добавляем статус робота в буфер передачи (например, 0x01 для нормального состояния)
-	*p++ = 0x01;
+	// Добавляем статус робота и режим управления:
+	// 0x01 - ручной режим ESP/UART, 0x02 - автоматический режим Luckfox/SPI.
+	*p++ = g_autoControlEnabled ? 0x02 : 0x01;
 
 	// Вычисляем контрольную сумму для кадра телеметрии и добавляем ее в буфер передачи
 	uint8_t checksum = 0;
@@ -382,8 +405,10 @@ void cpp_main(void) {
 	HAL_TIM_Base_Start_IT(&htim10);
 	// Начинаем принимать данные по UART в прерывании
 	HAL_UART_Receive_IT(&huart2, (uint8_t*) &g_rxByte, 1);
-	if (HAL_SPI_Receive_IT(&hspi1, &g_spiRxByte, 1) != HAL_OK)
+
+	if (HAL_SPI_Receive_IT(&hspi1, g_spiRxBytes, 4) != HAL_OK)
 		Error_Handler();
+
 	// Запускаем АЦП для измерения напряжения батареи
 //	HAL_ADC_Start(&hadc1);
 	
@@ -398,7 +423,7 @@ void cpp_main(void) {
 	
 while (1) {
 
-	g_servo.setAngle(g_spiTestByte);
+	g_servo.setAngle(g_spiTestBytes[0]);
 	if (g_spiRxError)
 		Error_Handler();
 
@@ -409,6 +434,17 @@ while (1) {
 	__disable_irq();
 	// Если пришел новый кадр, применяем команду движения до обновления управления
 	if (g_frameReady) {
+		if (g_autoControlEnabled != g_pendingAutoControlEnabled) {
+			g_motion.vx = 0;
+			g_motion.vy = 0;
+			g_motion.vz = 0;
+			g_pendingMotion.vx = 0;
+			g_pendingMotion.vy = 0;
+			g_pendingMotion.vz = 0;
+			for (uint8_t i = 0; i < 4; ++i)
+				g_pidControllers[i].reset();
+		}
+		g_autoControlEnabled = g_pendingAutoControlEnabled;
 		g_motion.vx = g_pendingMotion.vx;
 		g_motion.vy = g_pendingMotion.vy;
 		g_motion.vz = g_pendingMotion.vz;

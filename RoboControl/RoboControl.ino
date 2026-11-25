@@ -33,6 +33,7 @@ unsigned long lastCommandTime = 0;  // Время получения после�
 int16_t currentVx = 0;
 int16_t currentVy = 0;
 int16_t currentVz = 0;
+bool currentAutoControlEnabled = false;
 
 // ======= Вспомогательные функции =======
 // Определяет Content-Type по расширению файла для HTTP-ответа.
@@ -52,7 +53,7 @@ String getContentType(const String& path) {
 // Serial (UART0) используется для передачи команд на STM32.
 // UART0 ESP8266: TX = GPIO1, RX = GPIO3. RX STM32 подключается к TX ESP8266,
 // а TX STM32 — к RX ESP8266. Земля устройств должна быть общей.
-// Формат кадра: 0xAA 0x55 vx vy vz checksum, значения команд -70..70.
+// Формат кадра: 0xAA 0x55 vx vy vz mode checksum, значения команд -70..70.
 const uint8_t FRAME_START_1 = 0xAA;
 const uint8_t FRAME_START_2 = 0x55;
 const uint8_t FRAME_TYPE_TELEMETRY = 0x20;
@@ -71,14 +72,15 @@ TelemetryData latestTelemetry;
 // Явный прототип
 void sendTelemetryToClients(const TelemetryData& telemetry);
 
-void sendToStm(int16_t vx, int16_t vy, int16_t vz) {
+void sendToStm(int16_t vx, int16_t vy, int16_t vz, bool autoMode) {
 
-  uint8_t payload[3] = {
+  uint8_t payload[4] = {
     (uint8_t)(int8_t)vx,
     (uint8_t)(int8_t)vy,
-    (uint8_t)(int8_t)vz
+    (uint8_t)(int8_t)vz,
+    autoMode ? 1 : 0
   };
-  uint8_t checksum = payload[0] ^ payload[1] ^ payload[2];
+  uint8_t checksum = payload[0] ^ payload[1] ^ payload[2] ^ payload[3];
 
   Serial.write(0xAA);
   Serial.write(0x55);
@@ -91,7 +93,7 @@ void processMotion(int16_t vx, int16_t vy, int16_t vz) {
   currentVy = constrain(vy, -MAX_COMMAND, MAX_COMMAND);
   currentVz = constrain(vz, -MAX_COMMAND, MAX_COMMAND);
   lastCommandTime = millis();
-  sendToStm(currentVx, currentVy, currentVz);
+  sendToStm(currentVx, currentVy, currentVz, currentAutoControlEnabled);
 }
 
 void sendTelemetryToClients(const TelemetryData& telemetry) {
@@ -226,6 +228,9 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     int vx = doc["vx"] | 0;
     int vy = doc["vy"] | 0;
     int vz = doc["vz"] | 0;
+    if (doc.containsKey("auto")) {
+      currentAutoControlEnabled = doc["auto"].as<bool>();
+    }
     processMotion(vx, vy, vz);
     webSocket.sendTXT(num, "OK");
   }
