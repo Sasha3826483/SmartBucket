@@ -25,7 +25,7 @@
 float factY{};
 float factX{};
 float target{640.0 / 2};
-int angleBase{0};
+int angleBase{45};
 float errorY{0};
 float errorX{0};
 constexpr float deadBandPixels{20.0f};
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 
   commandedServoAngle = static_cast<float>(angleBase);
   lastServoUpdate = std::chrono::steady_clock::now();
-  controlCommand.angle = 0;
+  controlCommand.angle = commandedServoAngle;
   spi_push();
 
   // Непрерывная обработка кадров: захват → масштабирование → инференс →
