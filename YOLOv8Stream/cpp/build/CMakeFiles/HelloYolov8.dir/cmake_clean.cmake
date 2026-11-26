@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/HelloYolov8.dir/src/mjpeg_server.cc.o.d"
   "CMakeFiles/HelloYolov8.dir/src/postprocess.cc.o"
   "CMakeFiles/HelloYolov8.dir/src/postprocess.cc.o.d"
+  "CMakeFiles/HelloYolov8.dir/src/timer.cpp.o"
+  "CMakeFiles/HelloYolov8.dir/src/timer.cpp.o.d"
   "CMakeFiles/HelloYolov8.dir/src/yolov8.cc.o"
   "CMakeFiles/HelloYolov8.dir/src/yolov8.cc.o.d"
   "HelloYolov8"

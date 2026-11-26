@@ -285,6 +285,30 @@ src/postprocess.cc.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/src/postprocess.cc.s
 .PHONY : src/postprocess.cc.s
 
+src/timer.o: src/timer.cpp.o
+.PHONY : src/timer.o
+
+# target to build an object file
+src/timer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/src/timer.cpp.o
+.PHONY : src/timer.cpp.o
+
+src/timer.i: src/timer.cpp.i
+.PHONY : src/timer.i
+
+# target to preprocess a source file
+src/timer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/src/timer.cpp.i
+.PHONY : src/timer.cpp.i
+
+src/timer.s: src/timer.cpp.s
+.PHONY : src/timer.s
+
+# target to generate assembly for a file
+src/timer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/src/timer.cpp.s
+.PHONY : src/timer.cpp.s
+
 src/yolov8.o: src/yolov8.cc.o
 .PHONY : src/yolov8.o
 
@@ -334,6 +358,9 @@ help:
 	@echo "... src/postprocess.o"
 	@echo "... src/postprocess.i"
 	@echo "... src/postprocess.s"
+	@echo "... src/timer.o"
+	@echo "... src/timer.i"
+	@echo "... src/timer.s"
 	@echo "... src/yolov8.o"
 	@echo "... src/yolov8.i"
 	@echo "... src/yolov8.s"

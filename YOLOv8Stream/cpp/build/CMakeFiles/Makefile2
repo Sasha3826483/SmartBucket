@@ -137,12 +137,12 @@ CMakeFiles/HelloYolov8.dir/all: utils.out/CMakeFiles/fileutils.dir/all
 CMakeFiles/HelloYolov8.dir/all: utils.out/CMakeFiles/imageutils.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=1,2,3,4,5 "Built target HelloYolov8"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6 "Built target HelloYolov8"
 .PHONY : CMakeFiles/HelloYolov8.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/HelloYolov8.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles 10
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/HelloYolov8.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles 0
 .PHONY : CMakeFiles/HelloYolov8.dir/rule
@@ -154,7 +154,7 @@ HelloYolov8: CMakeFiles/HelloYolov8.dir/rule
 # codegen rule for target.
 CMakeFiles/HelloYolov8.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloYolov8.dir/build.make CMakeFiles/HelloYolov8.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=1,2,3,4,5 "Finished codegen for target HelloYolov8"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6 "Finished codegen for target HelloYolov8"
 .PHONY : CMakeFiles/HelloYolov8.dir/codegen
 
 # clean rule for target.
@@ -169,7 +169,7 @@ CMakeFiles/HelloYolov8.dir/clean:
 utils.out/CMakeFiles/fileutils.dir/all:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/fileutils.dir/build.make utils.out/CMakeFiles/fileutils.dir/depend
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/fileutils.dir/build.make utils.out/CMakeFiles/fileutils.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=6,7 "Built target fileutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=7,8 "Built target fileutils"
 .PHONY : utils.out/CMakeFiles/fileutils.dir/all
 
 # Build rule for subdir invocation for target.
@@ -186,7 +186,7 @@ fileutils: utils.out/CMakeFiles/fileutils.dir/rule
 # codegen rule for target.
 utils.out/CMakeFiles/fileutils.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/fileutils.dir/build.make utils.out/CMakeFiles/fileutils.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=6,7 "Finished codegen for target fileutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=7,8 "Finished codegen for target fileutils"
 .PHONY : utils.out/CMakeFiles/fileutils.dir/codegen
 
 # clean rule for target.
@@ -201,7 +201,7 @@ utils.out/CMakeFiles/fileutils.dir/clean:
 utils.out/CMakeFiles/imagedrawing.dir/all:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imagedrawing.dir/build.make utils.out/CMakeFiles/imagedrawing.dir/depend
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imagedrawing.dir/build.make utils.out/CMakeFiles/imagedrawing.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=8,9 "Built target imagedrawing"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=9,10 "Built target imagedrawing"
 .PHONY : utils.out/CMakeFiles/imagedrawing.dir/all
 
 # Build rule for subdir invocation for target.
@@ -218,7 +218,7 @@ imagedrawing: utils.out/CMakeFiles/imagedrawing.dir/rule
 # codegen rule for target.
 utils.out/CMakeFiles/imagedrawing.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imagedrawing.dir/build.make utils.out/CMakeFiles/imagedrawing.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=8,9 "Finished codegen for target imagedrawing"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=9,10 "Finished codegen for target imagedrawing"
 .PHONY : utils.out/CMakeFiles/imagedrawing.dir/codegen
 
 # clean rule for target.
@@ -233,7 +233,7 @@ utils.out/CMakeFiles/imagedrawing.dir/clean:
 utils.out/CMakeFiles/imageutils.dir/all:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imageutils.dir/build.make utils.out/CMakeFiles/imageutils.dir/depend
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imageutils.dir/build.make utils.out/CMakeFiles/imageutils.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=10,11 "Built target imageutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=11,12 "Built target imageutils"
 .PHONY : utils.out/CMakeFiles/imageutils.dir/all
 
 # Build rule for subdir invocation for target.
@@ -250,7 +250,7 @@ imageutils: utils.out/CMakeFiles/imageutils.dir/rule
 # codegen rule for target.
 utils.out/CMakeFiles/imageutils.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f utils.out/CMakeFiles/imageutils.dir/build.make utils.out/CMakeFiles/imageutils.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=10,11 "Finished codegen for target imageutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/mnt/d/SmartBucket/YOLOv8Stream/cpp/build/CMakeFiles --progress-num=11,12 "Finished codegen for target imageutils"
 .PHONY : utils.out/CMakeFiles/imageutils.dir/codegen
 
 # clean rule for target.

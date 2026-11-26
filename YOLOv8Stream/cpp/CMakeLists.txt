@@ -20,6 +20,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 # Собираем список C++-файлов реализации из каталога src.
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c*)
 list(REMOVE_ITEM SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/pid_controller.cpp")
+list(REMOVE_ITEM SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/timer.cpp")
 
 # Ищем установленную в проекте OpenCV 4 и добавляем её заголовки.
 set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake/opencv4")
@@ -33,6 +34,9 @@ find_package(Threads REQUIRED)
 # Создаём исполняемый файл из исходников, найденных выше.
 add_executable(${PROJECT_NAME}
     ${SRCS}
+)
+target_sources(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/timer.cpp
 )
 
 # Связываем приложение с RKNN, OpenCV, потоками и утилитами проекта.

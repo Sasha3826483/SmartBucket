@@ -11,6 +11,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/mnt/d/SmartBucket/YOLOv8Stream/cpp/src/main.cc" "CMakeFiles/HelloYolov8.dir/src/main.cc.o" "gcc" "CMakeFiles/HelloYolov8.dir/src/main.cc.o.d"
   "/mnt/d/SmartBucket/YOLOv8Stream/cpp/src/mjpeg_server.cc" "CMakeFiles/HelloYolov8.dir/src/mjpeg_server.cc.o" "gcc" "CMakeFiles/HelloYolov8.dir/src/mjpeg_server.cc.o.d"
   "/mnt/d/SmartBucket/YOLOv8Stream/cpp/src/postprocess.cc" "CMakeFiles/HelloYolov8.dir/src/postprocess.cc.o" "gcc" "CMakeFiles/HelloYolov8.dir/src/postprocess.cc.o.d"
+  "/mnt/d/SmartBucket/YOLOv8Stream/cpp/src/timer.cpp" "CMakeFiles/HelloYolov8.dir/src/timer.cpp.o" "gcc" "CMakeFiles/HelloYolov8.dir/src/timer.cpp.o.d"
   "/mnt/d/SmartBucket/YOLOv8Stream/cpp/src/yolov8.cc" "CMakeFiles/HelloYolov8.dir/src/yolov8.cc.o" "gcc" "CMakeFiles/HelloYolov8.dir/src/yolov8.cc.o.d"
   )
 

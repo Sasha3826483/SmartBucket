@@ -1,7 +1,7 @@
 #include "mjpeg_server.h" // HTTP-сервер для передачи обработанных кадров в формате MJPEG.
+#include "timer.hpp"
 #include "yolov8.h"  // Интерфейс проекта для RKNN, модели и постобработки YOLO.
 #include <algorithm> // std::max для ограничения координаты подписи.
-#include <chrono>    // Замер времени чтения кадра.
 #include <cmath>     // std::lround для преобразования угла в байт.
 #include <opencv2/core/core.hpp> // Базовые типы OpenCV: Mat, Point, Scalar.
 #include <opencv2/highgui/highgui.hpp> // Высокоуровневый ввод-вывод OpenCV, включая захват видео.
@@ -34,7 +34,7 @@ constexpr float servoSpeedGain{0.2f};
 constexpr int8_t maxPlatformSpeed{50};
 constexpr float platformSpeedGain{0.2f};
 float commandedServoAngle{0.0f};
-std::chrono::steady_clock::time_point lastServoUpdate{};
+Timer servoTimer;
 bool stm32AutoControlEnabled{false}; // Флаг, указывающий, что STM32 находится в автоматическом режиме управления (Auto), а не в ручном (Manual).
 
 struct ControlCommand {
@@ -101,15 +101,8 @@ int spi_push() {
   return 0;
 }
 
-float getServoUpdateInterval() {
-  const auto now = std::chrono::steady_clock::now();
-  float dt = std::chrono::duration<float>(now - lastServoUpdate).count();
-  lastServoUpdate = now;
-  return std::max(dt, 0.0f);
-}
-
 void moveServo(float angularVelocity) {
-  float dt = getServoUpdateInterval();
+  float dt = servoTimer.restart();
   angularVelocity =
       std::max(-maxServoSpeedDegreesPerSecond,
                std::min(angularVelocity, maxServoSpeedDegreesPerSecond));
@@ -119,7 +112,7 @@ void moveServo(float angularVelocity) {
 }
 
 void returnServoToBase() {
-  float maxStep = maxServoSpeedDegreesPerSecond * getServoUpdateInterval();
+  float maxStep = maxServoSpeedDegreesPerSecond * servoTimer.restart();
   float difference = static_cast<float>(angleBase) - commandedServoAngle;
   float angleChange = std::max(-maxStep, std::min(difference, maxStep));
   commandedServoAngle += angleChange;
@@ -192,15 +185,15 @@ int main(int argc, char **argv) {
   }
 
   commandedServoAngle = static_cast<float>(angleBase);
-  lastServoUpdate = std::chrono::steady_clock::now();
+  servoTimer.start();
   controlCommand.angle = commandedServoAngle;
   spi_push();
 
+  Timer frameTimer;
   // Непрерывная обработка кадров: захват → масштабирование → инференс →
   // детекции.
   while (1) {
-    std::chrono::steady_clock::time_point begin =
-        std::chrono::steady_clock::now();
+    frameTimer.start();
     cap >> camFrame;
     if (camFrame.empty()) {
       returnServoToBase();
@@ -276,10 +269,7 @@ int main(int argc, char **argv) {
     // Отправляем обработанный кадр подключённому браузеру по USB-сети.
     stream_server.publish(camFrame);
 
-    std::chrono::steady_clock::time_point end =
-        std::chrono::steady_clock::now();
-
-    g_controlDt = std::chrono::duration<double>(end - begin).count();
+    g_controlDt = frameTimer.elapsedSeconds();
 
     printf("Frame latency: %lf\n", g_controlDt);
 
@@ -307,7 +297,7 @@ int main(int argc, char **argv) {
       }
     } else {
       // Не накапливаем dt, пока серво не регулируется.
-      lastServoUpdate = std::chrono::steady_clock::now();
+      servoTimer.start();
       //returnServoToBase();
       moveMotor(0.0f);
     }
