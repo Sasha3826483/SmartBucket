@@ -35,6 +35,7 @@ constexpr int8_t maxPlatformSpeed{50};
 constexpr float platformSpeedGain{0.2f};
 float commandedServoAngle{0.0f};
 std::chrono::steady_clock::time_point lastServoUpdate{};
+bool stm32AutoControlEnabled{false}; // Флаг, указывающий, что STM32 находится в автоматическом режиме управления (Auto), а не в ручном (Manual).
 
 struct ControlCommand {
   uint8_t angle{0};
@@ -82,6 +83,18 @@ int spi_push() {
     perror("Failed to perform SPI transfer");
     close(spi_file);
     return -1;
+  }
+
+  if (rx_buffer[0] <= 1) {
+    const bool receivedAutoMode = rx_buffer[0] != 0;
+    if (receivedAutoMode != stm32AutoControlEnabled) {
+      printf("STM32 control mode: %s\n",
+             receivedAutoMode ? "AUTO" : "MANUAL");
+    }
+    stm32AutoControlEnabled = receivedAutoMode;
+  } else {
+    fprintf(stderr, "Invalid STM32 mode byte over SPI: %u\n",
+            static_cast<unsigned>(rx_buffer[0]));
   }
 
   close(spi_file);
@@ -270,7 +283,7 @@ int main(int argc, char **argv) {
 
     printf("Frame latency: %lf\n", g_controlDt);
 
-    if (detectionFound) {
+    if (stm32AutoControlEnabled && detectionFound) {
 
       errorY = target - factY;
       float errorOutsideDeadBand = std::abs(errorY) - deadBandPixels;
@@ -293,7 +306,9 @@ int main(int argc, char **argv) {
         moveMotor(0.0f);
       }
     } else {
-      returnServoToBase();
+      // Не накапливаем dt, пока серво не регулируется.
+      lastServoUpdate = std::chrono::steady_clock::now();
+      //returnServoToBase();
       moveMotor(0.0f);
     }
     spi_push();

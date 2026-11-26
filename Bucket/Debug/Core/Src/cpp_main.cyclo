@@ -1,3 +1,5 @@
+../Core/Inc/filter.hpp:11:10:IFilter::~IFilter()	1
+../Core/Inc/filter.hpp:11:10:virtual IFilter::~IFilter()	1
 ../Core/Inc/pwm_output.hpp:8:2:PwmOutput::PwmOutput(TIM_HandleTypeDef*, uint32_t)	1
 ../Core/Inc/pwm_output.hpp:12:20:HAL_StatusTypeDef PwmOutput::start()	1
 ../Core/Inc/pwm_output.hpp:20:7:void PwmOutput::setCompare(uint32_t)	4
@@ -5,31 +7,30 @@
 ../Core/Inc/servo.hpp:13:20:HAL_StatusTypeDef Servo::init(uint32_t)	2
 ../Core/Inc/servo.hpp:22:7:void Servo::setAngle(uint8_t)	2
 ../Core/Inc/servo.hpp:31:7:void Servo::setPulseTicks(uint32_t)	6
-../Core/Inc/filter.hpp:11:10:IFilter::~IFilter()	1
-../Core/Inc/filter.hpp:11:10:virtual IFilter::~IFilter()	1
-../Core/Src/cpp_main.cpp:166:7:float clampValue(float, float, float)	3
-../Core/Src/cpp_main.cpp:175:6:void applyMotorSpeed(Motor&, int16_t)	3
-../Core/Src/cpp_main.cpp:189:6:void applyMotion()	5
-../Core/Src/cpp_main.cpp:233:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	4
-../Core/Src/cpp_main.cpp:256:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	16
-../Core/Src/cpp_main.cpp:306:6:void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef*)	7
-../Core/Src/cpp_main.cpp:325:6:void HAL_SPI_ErrorCallback(SPI_HandleTypeDef*)	2
-../Core/Src/cpp_main.cpp:350:21:sendTelemetryFrame()::<lambda(int16_t)>	1
-../Core/Src/cpp_main.cpp:336:6:void sendTelemetryFrame()	7
-../Core/Src/cpp_main.cpp:378:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	2
-../Core/Src/cpp_main.cpp:394:6:void cpp_main()	25
+../Core/Src/cpp_main.cpp:161:7:float clampValue(float, float, float)	3
+../Core/Src/cpp_main.cpp:170:6:void applyMotorSpeed(Motor&, int16_t)	3
+../Core/Src/cpp_main.cpp:185:6:void applyMotion()	5
+../Core/Src/cpp_main.cpp:252:17:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	4
+../Core/Src/cpp_main.cpp:278:6:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	16
+../Core/Src/cpp_main.cpp:333:6:void prepareSpiResponse()	2
+../Core/Src/cpp_main.cpp:341:6:void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef*)	7
+../Core/Src/cpp_main.cpp:362:6:void HAL_SPI_ErrorCallback(SPI_HandleTypeDef*)	2
+../Core/Src/cpp_main.cpp:389:22:sendTelemetryFrame()::<lambda(int16_t)>	1
+../Core/Src/cpp_main.cpp:373:6:void sendTelemetryFrame()	7
+../Core/Src/cpp_main.cpp:418:6:void HAL_UART_TxCpltCallback(UART_HandleTypeDef*)	2
+../Core/Src/cpp_main.cpp:436:6:void cpp_main()	25
 ../Core/Inc/pid_controller.hpp:7:3:T clampValue(T, T, T) [with T = short int]	3
 ../Core/Inc/filter.hpp:24:7:MedianFilter<3>::~MedianFilter()	1
 ../Core/Inc/filter.hpp:24:7:virtual MedianFilter<3>::~MedianFilter()	1
 ../Core/Inc/filter.hpp:80:7:AverageFilter<10>::~AverageFilter()	1
 ../Core/Inc/filter.hpp:80:7:virtual AverageFilter<10>::~AverageFilter()	1
-../Core/Src/cpp_main.cpp:517:1:void __static_initialization_and_destruction_0()	1
-../Core/Src/cpp_main.cpp:517:1:void __static_initialization_and_destruction_1()	2
+../Core/Src/cpp_main.cpp:568:1:void __static_initialization_and_destruction_0()	1
+../Core/Src/cpp_main.cpp:568:1:void __static_initialization_and_destruction_1()	2
 ../Core/Inc/filter.hpp:26:8:float MedianFilter<WindowSize>::update(float) [with unsigned char WindowSize = 3]	7
 ../Core/Inc/filter.hpp:56:7:void MedianFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 3]	1
 ../Core/Inc/filter.hpp:62:8:float MedianFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 3]	1
 ../Core/Inc/filter.hpp:82:8:float AverageFilter<WindowSize>::update(float) [with unsigned char WindowSize = 10]	3
 ../Core/Inc/filter.hpp:99:7:void AverageFilter<WindowSize>::reset(float) [with unsigned char WindowSize = 10]	1
 ../Core/Inc/filter.hpp:106:8:float AverageFilter<WindowSize>::getValue() const [with unsigned char WindowSize = 10]	1
-../Core/Src/cpp_main.cpp:517:1:cpp)	1
-../Core/Src/cpp_main.cpp:517:1:cpp)	1
+../Core/Src/cpp_main.cpp:568:1:cpp)	1
+../Core/Src/cpp_main.cpp:568:1:cpp)	1
